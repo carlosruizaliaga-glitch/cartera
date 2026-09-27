@@ -1,7 +1,7 @@
 {
-  "name": "Cartera",
-  "short_name": "Cartera",
-  "description": "Mi cartera de bolsa y cripto",
+  "name": "Cartera Carlos",
+  "short_name": "Cartera Carlos",
+  "description": "Cartera de bolsa y cripto de Carlos",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

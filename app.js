@@ -24,11 +24,13 @@
   const cls = n => n > 1e-9 ? 'up' : n < -1e-9 ? 'down' : 'flat';
   const SYM = { EUR: '€', USD: '$', GBP: '£', CHF: 'CHF', HKD: 'HK$' };
   function price(n, cur) {
-    if (n == null) return '—';
-    const dec = n >= 1 ? 2 : n >= 0.01 ? 4 : 8;
+    if (n == null || !isFinite(n)) return '—';
+    const neg = n < 0 ? '−' : '';
+    n = Math.abs(n);
+    const dec = n >= 1 || n === 0 ? 2 : n >= 0.01 ? 4 : 8;
     let s = fnum(n, dec);
-    if (dec > 2) s = s.replace(/(,\d*?[1-9])0+$/, '$1').replace(/,0+$/, '');
-    return cur === 'USD' ? '$' + s : s + ' ' + (SYM[cur] || cur || '');
+    if (dec > 2) { s = s.replace(/0+$/, ''); if ((s.split(',')[1] || '').length < 2) s = fnum(n, 2); }
+    return cur === 'USD' ? neg + '$' + s : neg + s + ' ' + (SYM[cur] || cur || '');
   }
   const qtyFmt = q => Math.abs(q - Math.round(q)) < 1e-9 ? grp(String(Math.round(q))) : fnum(q, q < 1 ? 8 : 4).replace(/0+$/, '').replace(/,$/, '');
   const fdate = iso => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—';
@@ -99,18 +101,19 @@
     const txt = st === 'offline' ? 'OFFLINE' : st === 'bad_secret' ? 'CÓDIGO' : st === 'error' ? 'ERROR' : S.pending() ? S.pending() + ' PEND.' : 'SYNC';
     return `<span class="dot ${c}"></span>${txt}`;
   }
+  const pendingCount = () => S.list('dividend').filter(d => d.status === 'pending').length;
   function shell(inner) {
     const tabs = [['cartera', '▤', 'CARTERA'], ['dividendos', '$', 'DIVIDENDOS'], ['calendario', '▦', 'CALENDARIO'], ['analisis', '◧', 'ANÁLISIS']];
     app.innerHTML = `
       <header class="top">
-        <div class="brand"><b>&gt;</b> CARTERA</div><div class="sp"></div>
+        <div class="brand"><b>&gt;</b> CARTERA CARLOS</div><div class="sp"></div>
         <button class="iconbtn" id="syncBtn">${syncDot()}</button>
-        <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙ AJUSTES</button>
+        <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>
       </header>
       <div id="ptr"></div>
       <main id="main">${inner}</main>
       <nav class="tabs">${tabs.map((t, i) => (i === 2 ? '<button class="fab" id="fab" aria-label="Añadir">+</button>' : '') +
-        `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${t[1]}</span>${t[2]}</button>`).join('')}</nav>`;
+        `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${t[1]}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
     app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { ui.tab = b.dataset.tab; ui.scrub = null; render(); window.scrollTo(0, 0); });
     $('#syncBtn').onclick = () => { S.syncNow(); refreshMarket(true); };
     $('#setBtn').onclick = () => { ui.tab = 'ajustes'; render(); };
@@ -306,62 +309,8 @@
     el.addEventListener('mouseleave', end);
   }
 
-  // ---------- Ficha básica (se completa en la fase de FICHA) ----------
-  function openAsset(id) {
-    const mdl = model();
-    const a = mdl.byId[id] || S.get(id);
-    if (!a) return;
-    const p = mdl.pos[id], r = mdl.rows.find(x => x.a.id === id);
-    const q = (r && r.q) || M.quote(a);
-    const total = mdl.rows.reduce((s, x) => s + (x.value || 0), 0);
-    const txs = (p ? p.txs : []).slice().reverse();
-    const divs = S.list('dividend').filter(d => d.asset === id).sort((x, y) => x.date < y.date ? 1 : -1);
-    const divSum = divs.reduce((s, d) => s + (d.net || 0), 0);
-    const TYPE = { buy: 'COMPRA', sell: 'VENTA', scrip: 'SCRIP', earn: 'RECOMPENSA' };
-    const DTYPE = { dividend: 'DIVIDENDO', scrip: 'SCRIP', substitute: 'SUSTITUCIÓN' };
-    const held = p && p.qty > 0;
-    const bg = sheet(`
-      <div class="hd"><div style="display:flex;align-items:center;gap:11px">${logoHtml(a, q)}<div><div class="t">${esc(a.ticker)}</div><div class="nm muted">${esc(a.name)}</div></div></div><button data-close>✕</button></div>
-      <div class="acts">
-        <button data-act="buy" class="up">+ COMPRA</button>
-        ${held ? '<button data-act="sell" class="down">− VENTA</button>' : ''}
-        <button data-act="div" class="yellow">$ DIV.</button>
-        ${held && a.type !== 'crypto' ? '<button data-act="scrip" class="cyan">⟳ SCRIP</button>' : ''}
-        <button data-act="edit" class="purple">✎ EDITAR</button>
-      </div>
-      <div class="kv">
-        <div class="k">PRECIO</div><div class="v">${q ? price(q.price, q.currency) : '—'}</div>
-        <div class="k">ACCIONES</div><div class="v">${p ? qtyFmt(p.qty) : 0}</div>
-        <div class="k">PRECIO MEDIO</div><div class="v">${held ? price(p.avgLocal, q ? q.currency : a.currency) : '—'}</div>
-        <div class="k">COSTE</div><div class="v">${held ? eur(p.costEur) : '—'}</div>
-        <div class="k">VALOR</div><div class="v">${r && r.value != null ? eur(r.value) : '—'}</div>
-        <div class="k">P/L</div><div class="v ${cls(r && r.pl)}">${r && r.pl != null ? sEur(r.pl) + ' (' + sPct(r.plPct) + ')' : '—'}</div>
-        <div class="k">PESO</div><div class="v">${r && total ? fnum(r.value / total * 100, 2) + '%' : '—'}</div>
-        <div class="k">DIVIDENDOS COBRADOS</div><div class="v up">${eur(divSum)}</div>
-        <div class="k">SECTOR</div><div class="v">${esc(a.sector || '—')} / ${esc(a.subsector || '—')}</div>
-        <div class="k">PAÍS · DIVISA</div><div class="v">${esc(a.country || '—')} · ${esc(a.currency)}</div>
-        <div class="k">CARTERA</div><div class="v purple">${esc(a.portfolio || '—')}</div>
-      </div>
-      <h2><span>OPERACIONES · ${txs.length}</span><span class="muted">TOCA PARA EDITAR</span></h2>
-      <div class="rows">${txs.map(x => `<div class="row" data-tx="${esc(x.id)}">
-        <div class="mid"><div class="tk ${x.type === 'sell' ? 'down' : x.type === 'buy' ? 'up' : 'cyan'}" style="font-size:12px">${TYPE[x.type] || x.type}</div>
-        <div class="nm">${fdate(x.date)} · ${qtyFmt(x.qty)} × ${price(x.price, x.currency)}</div></div>
-        <div class="rt"><div class="val">${eur(x.totalEur || 0)}</div></div></div>`).join('') || '<div class="muted" style="padding:12px 0">SIN OPERACIONES</div>'}</div>
-      <h2><span>DIVIDENDOS · ${divs.length}</span></h2>
-      <div class="rows">${divs.slice(0, 40).map(d => `<div class="row" data-div="${esc(d.id)}">
-        <div class="mid"><div class="tk yellow" style="font-size:12px">${DTYPE[d.type] || 'DIVIDENDO'}${d.status === 'pending' ? '<span class="tag yellow">PENDIENTE</span>' : ''}</div>
-        <div class="nm">${fdate(d.date)}${d.withholding ? ' · ret. ' + eur(d.withholding) : ''}</div></div>
-        <div class="rt"><div class="val up">${eur(d.net || 0)}</div></div></div>`).join('') || '<div class="muted" style="padding:12px 0">SIN DIVIDENDOS</div>'}</div>
-      <div class="soon"><b>FICHA COMPLETA</b>GRÁFICO, PER, BPA, PRÓXIMO DIVIDENDO… EN LA FASE DE FICHA</div>`);
-    const F = window.Forms;
-    const go = fn => { bg.remove(); fn(); };
-    bg.querySelectorAll('[data-act]').forEach(b => b.onclick = () => go(() => ({
-      buy: () => F.openTrade('buy', { asset: a }), sell: () => F.openTrade('sell', { asset: a }),
-      div: () => F.openDividend({ asset: a }), scrip: () => F.openScrip({ asset: a }), edit: () => F.openAssetForm({ asset: a })
-    })[b.dataset.act]()));
-    bg.querySelectorAll('[data-tx]').forEach(el => el.onclick = () => go(() => F.editTx(S.get(el.dataset.tx))));
-    bg.querySelectorAll('[data-div]').forEach(el => el.onclick = () => go(() => F.openDividend({ div: S.get(el.dataset.div) })));
-  }
+  // ---------- Ficha (screens.js) ----------
+  function openAsset(id) { window.Screens.ficha(id); }
 
   // ---------- "+" ----------
   function openAdd() { window.Forms.openAdd(); }
@@ -386,12 +335,12 @@
 
   // ---------- Acceso ----------
   async function renderLogin() {
-    app.innerHTML = `<main class="login"><h1><span class="up">&gt;</span> CARTERA_</h1><div class="note">Conectando…</div></main>`;
+    app.innerHTML = `<main class="login"><h1><span class="up">&gt;</span> CARTERA CARLOS_</h1><div class="note">Conectando…</div></main>`;
     let st = null;
     try { st = await S.serverStatus(); } catch (e) { /* sin red */ }
     const create = st === 'new';
     app.innerHTML = `<main class="login">
-      <h1><span class="up">&gt;</span> CARTERA_</h1>
+      <h1><span class="up">&gt;</span> CARTERA CARLOS_</h1>
       <div class="label">${create ? 'CREA TU CÓDIGO DE ACCESO' : 'CÓDIGO DE ACCESO'}</div>
       <input id="code" type="password" autocomplete="current-password" placeholder="${create ? 'mínimo 6 caracteres' : 'tu código'}">
       <div class="err" id="err">${st == null ? 'Sin conexión con la nube. Revisa la red.' : ''}</div>
@@ -433,7 +382,13 @@
     const withTx = [...new Set(mdl.txs.map(t => t.asset))].map(id => mdl.byId[id]).filter(Boolean);
     const first = mdl.txs.reduce((m, t) => t.date < m ? t.date : m, today());
     if (!held.length) return Promise.resolve();
-    return M.refresh({ assets: held, histAssets: withTx, from: first, force });
+    // Fichas (fechas de dividendo y resultados) de tus acciones: cada 6 h.
+    let info = [];
+    if (Date.now() - pref('infoAt', 0) > 6 * 3600 * 1000) {
+      info = held.filter(a => a.type !== 'crypto' && a.yahoo).map(a => a.yahoo);
+      setPref('infoAt', Date.now());
+    }
+    return M.refresh({ assets: held, histAssets: withTx, from: first, force, info });
   }
 
   // ---------- Tirar para refrescar ----------
@@ -470,8 +425,8 @@
     if (S.status() === 'bad_secret') { S.logout(); renderLogin(); return; }
     const y = window.scrollY;
     if (ui.tab === 'cartera') renderCartera();
-    else if (ui.tab === 'dividendos') renderSoon('DIVIDENDOS', 'RENTA ANUAL, COBRADO VS PREVISTO, PRÓXIMOS PAGOS… EN LA FASE DE DIVIDENDOS');
-    else if (ui.tab === 'calendario') renderSoon('CALENDARIO', 'EX-DIVIDENDOS, PAGOS Y RESULTADOS… EN LA FASE DE CALENDARIO');
+    else if (ui.tab === 'dividendos') window.Screens.dividendos();
+    else if (ui.tab === 'calendario') window.Screens.calendario();
     else if (ui.tab === 'analisis') renderSoon('ANÁLISIS', 'DISTRIBUCIÓN, REGLAS Y FISCAL… EN LA FASE DE ANÁLISIS');
     else renderAjustes();
     window.scrollTo(0, y);
@@ -489,10 +444,20 @@
       if (firstData) setTimeout(() => refreshMarket(false), 100);
     }
   });
-  M.onChange(later);
+  let pendTimer = null;
+  const checkPending = () => {
+    clearTimeout(pendTimer);
+    pendTimer = setTimeout(() => {
+      if (!S.loggedIn() || !S.lastSync() || M.busy() || S.pending()) return;
+      try { const n = window.Divs.ensurePending(); if (n) toast(n === 1 ? '1 DIVIDENDO PENDIENTE DE CONFIRMAR' : n + ' DIVIDENDOS PENDIENTES DE CONFIRMAR'); } catch (e) { console.warn(e); }
+    }, 1500);
+  };
+  M.onChange(() => { later(); checkPending(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   if (S.loggedIn()) refreshMarket(false);
+  setTimeout(checkPending, 2500);
+  S.onChange(() => { if (S.status() === 'ok') checkPending(); });
 })();

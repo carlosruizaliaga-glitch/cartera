@@ -67,6 +67,20 @@ async function yahooHistory(sym: string, fromIso: string) {
   return { closes, events: { divs, splits: splitMap, currency: r.meta?.currency } };
 }
 
+// Histórico largo mensual (gráfico de 5 años / máximo y dividendos de siempre).
+async function yahooMonthly(sym: string) {
+  const d = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=max&interval=1mo&events=div,split`);
+  const r = d?.chart?.result?.[0];
+  if (!r?.timestamp) throw new Error('sin histórico largo ' + sym);
+  const off = r.meta?.gmtoffset || 0;
+  const closes: Record<string, number> = {};
+  const q = r.indicators?.quote?.[0]?.close || [];
+  r.timestamp.forEach((t: number, i: number) => { if (q[i] != null) closes[isoDay(t, off)] = q[i]; });
+  const divs: Record<string, number> = {};
+  for (const v of Object.values(r.events?.dividends || {}) as any[]) divs[isoDay(v.date, off)] = v.amount;
+  return { closes, events: { divs, currency: r.meta?.currency, monthly: true } };
+}
+
 let crumb: { c: string; cookie: string } | null = null;
 async function yahooCrumb() {
   if (crumb) return crumb;
@@ -217,6 +231,7 @@ Deno.serve(async (req) => {
         try {
           let h: { closes: Record<string, any>; events: any };
           if (k === 'FX') h = await fxHistory(since);
+          else if (k.startsWith('D:')) { const mh = await yahooMonthly(k.slice(2)); history[k] = mh; upd.push({ symbol: k, closes: mh.closes, events: mh.events, fetched_at: new Date(now).toISOString() }); return; }
           else if (k.startsWith('C:')) h = await coinHistory(k.slice(2));
           else {
             h = await yahooHistory(k.slice(2), since);

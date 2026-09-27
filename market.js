@@ -129,12 +129,26 @@
     return out.sort((x, y) => x.d < y.d ? -1 : 1);
   }
 
+  // Histórico mensual largo (desde que cotiza): { closes, divs: [{d, amount}], currency }.
+  function longHistory(a) {
+    const h = a.yahoo && m.history && m.history['D:' + a.yahoo];
+    if (!h) return null;
+    const pence = h.events && (h.events.currency === 'GBp' || h.events.currency === 'GBX');
+    const k = pence ? 0.01 : 1;
+    const closes = {};
+    Object.keys(h.closes || {}).forEach(d => { closes[d] = h.closes[d] * k; });
+    const dv = (h.events && h.events.divs) || {};
+    const divs = Object.keys(dv).sort().map(d => ({ d, amount: dv[d] * k }));
+    return { closes, divs, currency: pence ? 'GBP' : (h.events && h.events.currency) };
+  }
+
   // Carga precio + ficha + histórico de unos activos concretos (formularios, ficha, empresa nueva).
   async function load(assets, opts) {
     opts = opts || {};
     const body = { quotes: [...new Set(assets.map(quoteKey).filter(Boolean))], force: !!opts.force, fx: true };
     if (opts.info) body.info = assets.filter(a => a.type !== 'crypto' && a.yahoo).map(a => a.yahoo);
     if (opts.history) { body.history = [...new Set(assets.flatMap(histKeys))]; body.from = opts.from || '2023-01-01'; }
+    if (opts.long) body.history = (body.history || []).concat(assets.filter(a => a.type !== 'crypto' && a.yahoo).map(a => 'D:' + a.yahoo));
     const d = await call(body);
     Object.assign(m.quotes, d.quotes || {});
     if (d.fx) m.fx = d.fx;
@@ -150,7 +164,7 @@
 
   root.Market = {
     onChange: f => listeners.push(f),
-    refresh, quote, rate, rateOn, history, fxHistory, quoteKey, dividends, load, search,
+    refresh, quote, rate, rateOn, history, longHistory, fxHistory, quoteKey, dividends, load, search,
     info: sym => m.info[sym] || null,
     busy: () => busy,
     version: () => ver,

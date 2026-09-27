@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Cartera">
-  <title>Cartera</title>
+  <meta name="apple-mobile-web-app-title" content="Cartera Carlos">
+  <title>Cartera Carlos</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-180.png">
@@ -38,7 +38,7 @@
 
     header.top { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
       padding: calc(8px + env(safe-area-inset-top)) 16px 8px; display: flex; align-items: center; gap: 10px; }
-    header.top .brand { font-weight: 800; letter-spacing: .14em; font-size: 13px; }
+    header.top .brand { font-weight: 800; letter-spacing: .12em; font-size: 13px; white-space: nowrap; }
     header.top .brand b { color: var(--green); }
     header.top .sp { flex: 1; }
     .iconbtn { border: 1px solid var(--line2); padding: 6px 9px; font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--muted); }
@@ -155,8 +155,49 @@
     .danger { color: var(--red); border-color: var(--red); font-weight: 700; font-size: 12px; }
     .danger.armed { background: var(--red); color: #000; }
     .acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
-    .acts button { flex: 1; padding: 10px 4px; font-size: 11px; font-weight: 800; letter-spacing: .06em; }
+    .acts button { flex: 1; padding: 10px 2px; font-size: 10px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
     .seg button { font-size: 10.5px; }
+    /* Dividendos / calendario / ficha */
+    .sheet-bg.full .sheet { max-height: 100vh; height: 100vh; border: 0; padding-top: calc(12px + env(safe-area-inset-top)); }
+    nav.tabs button { position: relative; }
+    .badge { position: absolute; top: 6px; left: 50%; margin-left: 10px; background: var(--yellow); color: #000; font-style: normal; font-size: 9px; font-weight: 800; padding: 1px 5px; }
+    .chartbox { border: 1px solid var(--line); padding: 8px 6px 2px; margin-top: 8px; }
+    .chartbox svg { display: block; width: 100%; height: auto; }
+    .legend { display: flex; gap: 14px; font-size: 10px; letter-spacing: .1em; color: var(--muted); margin: 6px 0 0; flex-wrap: wrap; }
+    .legend .sw { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
+    .sw.fill { background: var(--yellow); } .sw.dash { border: 1.5px dashed var(--yellow); }
+    .sw.ref { height: 0 !important; border-top: 2px dashed var(--yellow); width: 16px !important; vertical-align: 3px !important; }
+    .sw.sq.g { background: var(--green); } .sw.sq.r { background: var(--red); }
+    .ysel { display: flex; align-items: center; gap: 8px; color: var(--fg); }
+    .ysel button { padding: 2px 9px; font-size: 13px; }
+    .yrs { margin-top: 8px; }
+    .yr { display: grid; grid-template-columns: 44px 1fr auto 66px; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .yr .y { color: var(--muted); } .yr .v { font-weight: 700; text-align: right; } .yr .g { text-align: right; font-size: 11px; }
+    .yr .bar { height: 10px; border: 1px solid var(--line2); } .yr .bar i { display: block; height: 100%; background: var(--yellow); }
+    .wbar { height: 3px; background: var(--line); margin-top: 5px; } .wbar i { display: block; height: 100%; background: var(--yellow); }
+    .row.pend { cursor: default; }
+    .pbtns { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+    .pbtns button { padding: 7px 9px; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; color: var(--muted); }
+    .pbtns .okb { background: var(--yellow); color: #000; border-color: var(--yellow); }
+    .row.cal { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+    .row.cal .day { width: 34px; flex: none; text-align: center; line-height: 1.05; }
+    .row.cal .day b { display: block; font-size: 17px; } .row.cal .day span { font-size: 9px; color: var(--muted); letter-spacing: .08em; }
+    .row.cal.past { opacity: .45; }
+    .evt { font-size: 9px; letter-spacing: .1em; border: 1px solid currentColor; padding: 0 4px; margin-left: 6px; vertical-align: 2px; font-weight: 800; }
+    .fprice { display: flex; align-items: baseline; gap: 12px; margin: 6px 0 4px; flex-wrap: wrap; }
+    .fprice .big { font-size: 28px; font-weight: 800; }
+    .grid-kv { display: grid; grid-template-columns: 1fr 1fr 1fr; border-left: 1px solid var(--line); border-top: 1px solid var(--line); margin-top: 10px; }
+    .grid-kv > div { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 9px; min-width: 0; }
+    .grid-kv span { display: block; font-size: 9.5px; letter-spacing: .1em; color: var(--muted); }
+    .grid-kv b { display: block; font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nextdiv { border: 1px solid var(--yellow); padding: 10px 11px; margin-top: 12px; }
+    .nextdiv .nd { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 8px; }
+    .nextdiv .label .tag { display: inline-block; }
+    .nextdiv .nd span { display: block; font-size: 9.5px; letter-spacing: .1em; color: var(--muted); } .nextdiv .nd b { font-size: 13px; }
+    .paylist { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 6px; font-size: 12px; }
+    .paylist div { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 5px 0; }
+    .paylist span { color: var(--muted); }
+    .tag.dim { color: var(--dim); }
   </style>
 </head>
 <body>
@@ -166,6 +207,8 @@
   <script src="calc.js"></script>
   <script src="app.js"></script>
   <script src="forms.js"></script>
+  <script src="dividends.js"></script>
+  <script src="screens.js"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
   </script>
