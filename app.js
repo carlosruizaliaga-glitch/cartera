@@ -428,7 +428,7 @@
     else if (ui.tab === 'dividendos') window.Screens.dividendos();
     else if (ui.tab === 'calendario') window.Screens.calendario();
     else if (ui.tab === 'analisis') window.Analysis.render();
-    else renderAjustes();
+    else window.SettingsScreen.render();
     window.scrollTo(0, y);
   }
 
