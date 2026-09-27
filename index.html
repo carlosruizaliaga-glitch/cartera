@@ -198,6 +198,33 @@
     .paylist div { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 5px 0; }
     .paylist span { color: var(--muted); }
     .tag.dim { color: var(--dim); }
+
+    /* Análisis */
+    .stack { display: flex; height: 14px; margin: 14px 0 6px; border: 1px solid var(--line2); }
+    .stack i { display: block; height: 100%; }
+    .dg { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .dh { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .dh b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dh .sq { width: 10px; height: 10px; flex: none; }
+    .dh .v { color: var(--muted); font-size: 12px; } .dh .w { font-weight: 800; width: 56px; text-align: right; }
+    .dbar { height: 4px; background: var(--line); margin: 6px 0 5px; } .dbar i { display: block; height: 100%; }
+    .dtk { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--muted); }
+    .dtk span { cursor: pointer; } .dtk em { font-style: normal; color: var(--dim); }
+    .rule { border: 1px solid var(--line2); padding: 11px; margin: 12px 0; }
+    .rule.ok { border-color: #2a5a3a; } .rule.bad { border-color: var(--red); }
+    .rh { display: flex; align-items: center; gap: 8px; }
+    .rh b { flex: 1; font-size: 12px; letter-spacing: .08em; }
+    .rh .st { font-size: 10px; font-weight: 800; padding: 2px 6px; letter-spacing: .08em; }
+    .rule.ok .st { background: var(--green); color: #000; } .rule.bad .st { background: var(--red); color: #000; }
+    .thr { font-size: 10px; color: var(--muted); letter-spacing: .08em; display: flex; align-items: center; gap: 4px; }
+    .thr input { width: 44px; background: #000; border: 1px solid var(--line2); color: var(--fg); padding: 4px 5px; font: inherit; font-size: 13px; text-align: right; }
+    .rd { font-size: 11.5px; margin: 6px 0 4px; }
+    .meter { position: relative; height: 10px; border: 1px solid var(--line2); margin: 10px 0; }
+    .meter i { display: block; height: 100%; background: var(--green); } .meter i.bad { background: var(--red); }
+    .meter s { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--fg); }
+    .ctry { margin-top: 10px; }
+    .ctry > div { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+    .ctry b { color: var(--fg); width: 100%; font-size: 12.5px; }
   </style>
 </head>
 <body>
@@ -209,6 +236,7 @@
   <script src="forms.js"></script>
   <script src="dividends.js"></script>
   <script src="screens.js"></script>
+  <script src="analysis.js"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
   </script>
