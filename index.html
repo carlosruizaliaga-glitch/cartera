@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#0d1117">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -360,6 +360,24 @@
     .row.cal { border-bottom-color: var(--hair2); }
     .rows > .row.cal:last-child { border-bottom: 0; }
     .rule .kv, .rule .rows { background: none; border: 0; box-shadow: none; padding: 0; }
+
+    /* ===== Paleta v3: grafito azulado (fondo de editor de código); mismos colores de acento ===== */
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9aa4b2; --dim: #636e7d; --line: #232b36; --line2: #303a48;
+      --card: #161b22; --card2: #121820; --raise: #1f2630;
+      --hair: rgba(240, 246, 252, .09); --hair2: rgba(240, 246, 252, .06);
+      --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 8px 22px rgba(1, 4, 9, .45);
+    }
+    html, body { background: var(--bg); }
+    body { background: radial-gradient(120% 50% at 50% -10%, #1a2433 0%, rgba(13, 17, 23, 0) 60%) fixed, var(--bg); }
+    header.top { background: rgba(13, 17, 23, .82); }
+    nav.tabs { background: rgba(22, 27, 34, .9); box-shadow: 0 10px 30px rgba(1, 4, 9, .6); }
+    .sheet { background: linear-gradient(180deg, #171d26, #0d1117); }
+    .actions { background: linear-gradient(180deg, rgba(13, 17, 23, 0), #0d1117 30%); }
+    .seg button.on { background: var(--raise); box-shadow: 0 2px 10px rgba(1, 4, 9, .5), 0 0 0 1px var(--hair) inset; }
+    button:active { background: #262e3a; }
+    .toast { background: rgba(31, 38, 48, .97); }
+    .sheet-bg { background: rgba(1, 4, 9, .55); }
   </style>
 </head>
 <body>

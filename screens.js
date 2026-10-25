@@ -29,10 +29,10 @@
         const y0 = y((d.a || 0) + d.b), h = y(d.a || 0) - y0;
         g += `<rect x="${x + 0.75}" y="${y0 + 0.75}" width="${w - 1.5}" height="${Math.max(0, h - 1.5)}" rx="${Math.min(5, w / 4)}" fill="none" stroke="${opts.color || 'var(--yellow)'}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
       }
-      g += `<text x="${i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="${opts.fs || 15}" fill="${d.hl ? 'var(--fg)' : '#7c7c7c'}" font-family="JetBrains Mono, monospace">${d.label}</text>`;
+      g += `<text x="${i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="${opts.fs || 15}" fill="${d.hl ? 'var(--fg)' : 'var(--muted)'}" font-family="JetBrains Mono, monospace">${d.label}</text>`;
       if (d.note) g += `<text x="${i * bw + bw / 2}" y="${Math.max(12, y((d.a || 0) + (d.b || 0)) - 4)}" text-anchor="middle" font-size="${opts.fs ? opts.fs - 2 : 13}" fill="#e8e8e8" font-family="JetBrains Mono, monospace">${d.note}</text>`;
     });
-    return `<svg viewBox="0 0 ${W} ${H}" class="bars">${g}<line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="#3a3a3a"/></svg>`;
+    return `<svg viewBox="0 0 ${W} ${H}" class="bars">${g}<line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line2)"/></svg>`;
   }
 
   // Línea con dedo (precio de una acción). pts: [{d, v}], marks: [{d, type}], ref: precio medio.
