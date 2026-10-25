@@ -1,6 +1,6 @@
 // Service worker: guarda la app (y la fuente) en caché para que abra sin conexión.
-const CACHE = 'cartera-v12';
-const FILES = ['./', 'index.html', 'app.js', 'store.js', 'market.js', 'calc.js', 'forms.js', 'dividends.js', 'screens.js', 'analysis.js', 'xlsx.js', 'settings.js', 'manifest.webmanifest',
+const CACHE = 'cartera-v13';
+const FILES = ['./', 'index.html', 'app.js', 'store.js', 'market.js', 'calc.js', 'forms.js', 'dividends.js', 'screens.js', 'analysis.js', 'xlsx.js', 'settings.js', 'version.js', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -22,9 +22,11 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;
+  if (url.pathname.endsWith('/version.json')) return;   // siempre directo a internet
   // App: red primero (para recibir actualizaciones), caché si no hay conexión.
+  // 'no-cache' = preguntar siempre a internet si el archivo cambió (GitHub Pages lo guardaba 10 minutos).
   e.respondWith(
-    fetch(e.request).then(res => {
+    fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy));
       return res;

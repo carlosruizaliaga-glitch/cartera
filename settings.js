@@ -169,6 +169,13 @@
         <label><span>MÁX. CRIPTO</span><input data-r="maxCrypto" inputmode="decimal" value="${UI.fnum(R.maxCrypto, R.maxCrypto % 1 ? 1 : 0)}"><em>%</em></label>
       </div>
 
+      <h2><span>LA APP</span></h2>
+      <div class="kv" style="margin-top:10px">
+        <div class="k">VERSIÓN INSTALADA</div><div class="v">${UI.esc(window.APP_VERSION || '—')}</div>
+        <div class="k">ÚLTIMA DISPONIBLE</div><div class="v ${UI.hasUpdate() ? 'cyan' : ''}">${UI.upd.error ? '<span class="yellow">SIN CONEXIÓN</span>' : UI.upd.latest ? UI.esc(UI.upd.latest) : '—'}</div>
+      </div>
+      <div class="bk" style="margin-top:10px"><button id="updBtn" class="${UI.hasUpdate() ? 'primary' : ''}">${UI.hasUpdate() ? '⬇ ACTUALIZAR LA APP AHORA' : '↻ BUSCAR ACTUALIZACIÓN'}</button></div>
+
       <h2><span>SINCRONIZACIÓN</span></h2>
       <div class="kv" style="margin-top:10px">
         <div class="k">ESTADO</div><div class="v">${S.status() === 'ok' ? '<span class="up">AL DÍA</span>' : S.status() === 'offline' ? '<span class="yellow">SIN CONEXIÓN</span>' : UI.esc(S.status().toUpperCase())}${S.pending() ? ' · ' + S.pending() + ' por subir' : ''}</div>
@@ -180,6 +187,14 @@
       <button class="block" id="logout" style="margin-top:18px">CERRAR SESIÓN EN ESTE MÓVIL</button>
       <div class="muted" style="font-size:11px;margin:14px 0 4px">Cartera Carlos · datos en la nube (Supabase) · precios Yahoo Finance / CoinGecko · divisas BCE.</div>`);
 
+    $('#updBtn').onclick = async () => {
+      if (UI.hasUpdate()) return UI.applyUpdate();
+      $('#updBtn').textContent = 'BUSCANDO…';
+      await UI.checkUpdate(true);
+      if (UI.hasUpdate()) { UI.render(); UI.toast('HAY UNA VERSIÓN NUEVA'); }
+      else if (UI.upd.error) { UI.toast('No se pudo comprobar: sin conexión'); $('#updBtn').textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
+      else { UI.toast('YA TIENES LA ÚLTIMA VERSIÓN'); $('#updBtn').textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
+    };
     $('#xExcel').onclick = exportExcel;
     $('#xOps').onclick = () => exportCsv('operaciones');
     $('#xDivs').onclick = () => exportCsv('dividendos');

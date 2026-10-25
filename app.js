@@ -102,6 +102,49 @@
     const txt = st === 'offline' ? 'OFFLINE' : st === 'bad_secret' ? 'CÓDIGO' : st === 'error' ? 'ERROR' : S.pending() ? S.pending() + ' PEND.' : 'SYNC';
     return `<span class="dot ${c}"></span>${txt}`;
   }
+  // ---------- Actualizaciones de la app ----------
+  const upd = { latest: null, checking: false, applying: false, lastCheck: 0, error: false };
+  const hasUpdate = () => !!upd.latest && upd.latest !== window.APP_VERSION;
+  const updateBanner = () => hasUpdate()
+    ? `<div class="upd"><span>HAY UNA VERSIÓN NUEVA</span><button id="updNow">ACTUALIZAR</button></div>` : '';
+  async function checkUpdate(force) {
+    if (upd.checking || (!force && Date.now() - upd.lastCheck < 20 * 60 * 1000)) return upd;
+    upd.checking = true; upd.error = false;
+    try {
+      const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      upd.latest = j.v; upd.lastCheck = Date.now();
+    } catch (e) { upd.error = true; }
+    upd.checking = false;
+    return upd;
+  }
+  // Borra la copia guardada de la app y la vuelve a bajar. Tus datos (nube y móvil) no se tocan.
+  async function applyUpdate() {
+    if (upd.applying) return;
+    upd.applying = true;
+    toast('ACTUALIZANDO…');
+    try {
+      await Promise.all((window.APP_FILES || []).map(f => fetch(f + (f === './' ? '' : '?u=' + Date.now()), { cache: 'reload' }).catch(() => null)));
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+    } catch (e) { /* seguimos igualmente con la recarga */ }
+    location.href = location.pathname + '?v=' + Date.now();
+  }
+  async function updateCycle(force) {
+    const before = hasUpdate();
+    await checkUpdate(force);
+    if (hasUpdate() !== before && S.loggedIn() && !document.querySelector('.sheet-bg')) render();
+  }
+  document.addEventListener('click', e => { if (e.target.closest('#updNow')) applyUpdate(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) updateCycle(false); });
+  setInterval(() => { if (!document.hidden) updateCycle(false); }, 30 * 60 * 1000);
+  setTimeout(() => updateCycle(true), 2500);
+  try { if (/^\?v=\d+$/.test(location.search)) history.replaceState(history.state, '', location.pathname); } catch (e) { /* sin historial */ }
+
   const pendingCount = () => S.list('dividend').filter(d => d.status === 'pending').length;
   function shell(inner) {
     const tabs = [['cartera', '▤', 'CARTERA'], ['dividendos', '$', 'DIVIDENDOS'], ['calendario', '▦', 'CALENDARIO'], ['analisis', '◧', 'ANÁLISIS']];
@@ -112,7 +155,7 @@
         <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>
       </header>
       <div id="ptr"></div>
-      <main id="main">${inner}</main>
+      <main id="main">${updateBanner()}${inner}</main>
       <nav class="tabs">${tabs.map((t, i) => (i === 2 ? '<button class="fab" id="fab" aria-label="Añadir">+</button>' : '') +
         `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${t[1]}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
     app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => navigate({ tab: b.dataset.tab }));
@@ -536,7 +579,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   if (S.loggedIn()) refreshMarket(false);
   setTimeout(checkPending, 2500);

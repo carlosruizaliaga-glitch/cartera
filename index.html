@@ -378,10 +378,17 @@
     button:active { background: #262e3a; }
     .toast { background: rgba(31, 38, 48, .97); }
     .sheet-bg { background: rgba(1, 4, 9, .55); }
+
+    /* Actualización */
+    .upd { display: flex; align-items: center; gap: 10px; margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r-sm);
+      background: var(--cyan-soft); border: 1px solid rgba(139, 233, 253, .3); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--cyan); }
+    .upd span { flex: 1; font-weight: 700; }
+    .upd button { background: var(--cyan); color: #04141a; border: 0; border-radius: 999px; padding: 8px 14px; font: 800 11px var(--mono); letter-spacing: .08em; }
   </style>
 </head>
 <body>
   <div id="app"></div>
+  <script src="version.js"></script>
   <script src="store.js"></script>
   <script src="market.js"></script>
   <script src="calc.js"></script>

@@ -50,5 +50,12 @@ Ve a **⚙ (arriba a la derecha)** → **COPIA DE SEGURIDAD**:
 
 Guarda una copia al mes en Drive o mándatela por email.
 
+## Actualizar la app en el móvil
+- Si hay una versión nueva, arriba aparece **HAY UNA VERSIÓN NUEVA · ACTUALIZAR**. Púlsalo y listo (tus datos no se tocan).
+- También en **⚙ → LA APP → BUSCAR ACTUALIZACIÓN**, donde ves la versión instalada y la última disponible.
+
+## Para quien publique cambios
+Antes de cada `git push`, ejecutar `python tools/bump.py` (marca la versión nueva; sin esto las apps instaladas no avisan).
+
 ## Nota
 El plan gratuito de Supabase pausa el proyecto si pasa una semana sin ningún uso. Si ocurre, entra en supabase.com → proyecto **Cartera** → **Restore**. Mientras tanto, la app sigue funcionando en el móvil y sube los cambios cuando se reactiva.
