@@ -440,37 +440,55 @@
     if (navStack.length) { Object.assign(ui, navStack.pop()); ui.scrub = null; setPref('filter', ui.filter); render(); window.scrollTo(0, 0); return; }
     if (ui.tab !== 'cartera') { ui.tab = 'cartera'; render(); window.scrollTo(0, 0); }
   }
-  // Chrome (Android) se salta las entradas de historial creadas sin que el usuario haya tocado la pantalla.
-  // Por eso solo las creamos justo después de un toque, y mantenemos tantas como pasos se pueden deshacer
-  // (pantallas visitadas + ventanas abiertas + 1 de reserva para no salir desde CARTERA).
+  // Cómo se "engancha" el gesto atrás:
+  // - Android/Chrome moderno: CloseWatcher (la API pensada para el botón/gesto atrás). No usa el historial,
+  //   así que no hay animación con la "foto" de la pantalla: la app recibe el aviso y cambia directamente.
+  // - Resto de navegadores: entradas de historial (respaldo).
+  // En ambos casos mantenemos tantos "pasos" como se pueden deshacer: pantallas visitadas + ventanas abiertas
+  // + 1 de reserva para no salir desde CARTERA.
+  const HAS_CW = typeof window.CloseWatcher === 'function';
   let hDepth = 0, ignorePop = 0, syncTimer = null;
+  const watchers = [];
   const logicalDepth = () => (S.loggedIn() ? navStack.length + document.querySelectorAll('.sheet-bg').length + 1 : 0);
-  function syncHistory(fromUser) {
-    const L = logicalDepth();
+  function addWatcher() {
     try {
-      if (hDepth < L && fromUser) { while (hDepth < L) { history.pushState({ d: hDepth + 1 }, ''); hDepth++; } }
-      else if (hDepth > L) { const n = hDepth - L; hDepth = L; ignorePop += 1; history.go(-n); }
+      const w = new CloseWatcher();
+      w.onclose = () => { const i = watchers.indexOf(w); if (i >= 0) watchers.splice(i, 1); onBack(); };
+      watchers.push(w);
+    } catch (e) { /* no disponible */ }
+  }
+  function setDepth(target, canGrow) {
+    if (HAS_CW) {
+      if (canGrow) while (watchers.length < target) addWatcher();
+      while (watchers.length > target) { const w = watchers.pop(); w.onclose = null; try { w.destroy(); } catch (e) { /* ya cerrado */ } }
+      return;
+    }
+    try {
+      if (hDepth < target && canGrow) { while (hDepth < target) { history.pushState({ d: hDepth + 1 }, ''); hDepth++; } }
+      else if (hDepth > target) { const n = hDepth - target; hDepth = target; ignorePop += 1; history.go(-n); }
     } catch (e) { /* sin historial */ }
   }
-  // Se llama dentro del toque y ANTES de cambiar la pantalla: así Chrome guarda la foto correcta para el gesto atrás.
-  function pushEntry() {
-    if (!S.loggedIn()) return;
-    // +1: la pantalla/ventana que se va a abrir todavía no cuenta en logicalDepth()
-    try { const target = logicalDepth() + 1; while (hDepth < target) { history.pushState({ d: hDepth + 1 }, ''); hDepth++; } } catch (e) { /* sin historial */ }
-  }
+  const syncHistory = fromUser => setDepth(logicalDepth(), fromUser);
+  // Se llama dentro del toque y ANTES de abrir la pantalla/ventana nueva (+1 porque aún no cuenta).
+  function pushEntry() { if (S.loggedIn()) setDepth(logicalDepth() + 1, true); }
   let lastTouch = 0;
   const onUser = () => { lastTouch = Date.now(); clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(true), 40); };
   ['click', 'pointerup', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, onUser, true));
   new MutationObserver(() => { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(false), 40); })
     .observe(document.body, { childList: true });
   let lastExitHint = 0;
-  window.addEventListener('popstate', () => {
-    if (ignorePop) { ignorePop--; return; }
-    hDepth = Math.max(0, hDepth - 1);
+  function onBack() {
     const atRoot = !document.querySelector('.sheet-bg') && !navStack.length && ui.tab === 'cartera';
     goBack();
     if (atRoot && S.loggedIn() && Date.now() - lastExitHint > 4000) { lastExitHint = Date.now(); toast('Vuelve a deslizar atrás para salir'); }
+  }
+  if (!HAS_CW) window.addEventListener('popstate', () => {
+    if (ignorePop) { ignorePop--; return; }
+    hDepth = Math.max(0, hDepth - 1);
+    onBack();
   });
+  // Reserva inicial para CARTERA (el navegador permite crear una sin haber tocado la pantalla)
+  if (HAS_CW) setTimeout(() => syncHistory(true), 300);
 
   // ---------- Render ----------
   function render() {
