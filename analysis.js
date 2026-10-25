@@ -3,7 +3,7 @@
   'use strict';
   const S = window.Store, M = window.Market, C = window.Calc;
   const U = () => window.UI;
-  const COLORS = ['var(--cyan)', 'var(--yellow)', 'var(--purple)', 'var(--green)', 'var(--orange)', 'var(--red)', '#e8e8e8', '#6272a4', '#ff79c6', '#a4ffff', '#7c7c7c'];
+  const COLORS = ['var(--green)', 'var(--yellow)', 'var(--cyan)', 'var(--purple)', 'var(--orange)', 'var(--red)', '#e8f1ef', '#6f8fa6', '#e59ac6', '#9fe3d3', '#93a8a6'];
   const st = { view: 'dist', dim: 'sector', year: null };
   const settings = () => S.get('settings') || { withholding: {}, rules: {} };
   const rules = () => Object.assign({ maxPerCompany: 7, maxHighYield: 5, maxCrypto: 5 }, settings().rules || {});

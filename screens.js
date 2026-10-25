@@ -30,7 +30,7 @@
         g += `<rect x="${x + 0.75}" y="${y0 + 0.75}" width="${w - 1.5}" height="${Math.max(0, h - 1.5)}" rx="${Math.min(5, w / 4)}" fill="none" stroke="${opts.color || 'var(--yellow)'}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
       }
       g += `<text x="${i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="${opts.fs || 15}" fill="${d.hl ? 'var(--fg)' : 'var(--muted)'}" font-family="JetBrains Mono, monospace">${d.label}</text>`;
-      if (d.note) g += `<text x="${i * bw + bw / 2}" y="${Math.max(12, y((d.a || 0) + (d.b || 0)) - 4)}" text-anchor="middle" font-size="${opts.fs ? opts.fs - 2 : 13}" fill="#e8e8e8" font-family="JetBrains Mono, monospace">${d.note}</text>`;
+      if (d.note) g += `<text x="${i * bw + bw / 2}" y="${Math.max(12, y((d.a || 0) + (d.b || 0)) - 4)}" text-anchor="middle" font-size="${opts.fs ? opts.fs - 2 : 13}" fill="#e8f1ef" font-family="JetBrains Mono, monospace">${d.note}</text>`;
     });
     return `<svg viewBox="0 0 ${W} ${H}" class="bars">${g}<line x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}" stroke="var(--line2)"/></svg>`;
   }
@@ -62,7 +62,7 @@
       ${opts.ref ? `<line x1="0" x2="${W}" y1="${y(opts.ref)}" y2="${y(opts.ref)}" stroke="var(--yellow)" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>` : ''}
       <path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
       ${marks}
-      <line class="cx" x1="0" x2="0" y1="0" y2="${H}" stroke="#e8e8e8" vector-effect="non-scaling-stroke" visibility="hidden"/>
+      <line class="cx" x1="0" x2="0" y1="0" y2="${H}" stroke="#e8f1ef" vector-effect="non-scaling-stroke" visibility="hidden"/>
       <rect class="cd" width="7" height="7" fill="${col}" visibility="hidden"/></svg>`;
     const svg = box.querySelector('svg');
     const move = ev => {
