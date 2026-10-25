@@ -50,6 +50,7 @@
     bg.className = 'sheet-bg';
     bg.innerHTML = `<div class="sheet">${html}</div>`;
     bg.addEventListener('click', e => { if (e.target === bg || e.target.closest('[data-close]')) bg.remove(); });
+    pushEntry();
     document.body.appendChild(bg);
     return bg;
   }
@@ -427,7 +428,7 @@
     const before = { tab: ui.tab, filter: ui.filter };
     Object.assign(ui, patch); ui.scrub = null;
     const changed = before.tab !== ui.tab || (before.filter !== ui.filter && (before.filter === 'watch' || ui.filter === 'watch'));
-    if (changed) { navStack.push(before); if (navStack.length > 40) navStack.shift(); }
+    if (changed) { pushEntry(); navStack.push(before); if (navStack.length > 40) navStack.shift(); }
     if (patch.filter) setPref('filter', ui.filter);
     render();
     if (before.tab !== ui.tab || changed) window.scrollTo(0, 0);
@@ -451,7 +452,14 @@
       else if (hDepth > L) { const n = hDepth - L; hDepth = L; ignorePop += 1; history.go(-n); }
     } catch (e) { /* sin historial */ }
   }
-  const onUser = () => { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(true), 40); };
+  // Se llama dentro del toque y ANTES de cambiar la pantalla: así Chrome guarda la foto correcta para el gesto atrás.
+  function pushEntry() {
+    if (!S.loggedIn()) return;
+    // +1: la pantalla/ventana que se va a abrir todavía no cuenta en logicalDepth()
+    try { const target = logicalDepth() + 1; while (hDepth < target) { history.pushState({ d: hDepth + 1 }, ''); hDepth++; } } catch (e) { /* sin historial */ }
+  }
+  let lastTouch = 0;
+  const onUser = () => { lastTouch = Date.now(); clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(true), 40); };
   ['click', 'pointerup', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, onUser, true));
   new MutationObserver(() => { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(false), 40); })
     .observe(document.body, { childList: true });
@@ -478,7 +486,13 @@
   }
 
   let pending = null, seenVersion = S.version();
-  const later = () => { if (document.querySelector('.sheet-bg')) return; clearTimeout(pending); pending = setTimeout(render, 80); };
+  const later = () => {
+    if (document.querySelector('.sheet-bg')) return;
+    clearTimeout(pending);
+    // si acabas de tocar o deslizar, espera a que pares para no mover la pantalla
+    const wait = Math.max(80, 1500 - (Date.now() - lastTouch));
+    pending = setTimeout(() => { if (Date.now() - lastTouch < 1400) return later(); render(); }, wait);
+  };
   S.onChange(() => {
     const b = $('#syncBtn'); if (b) b.innerHTML = syncDot();
     if (!S.loggedIn()) return;
@@ -497,7 +511,11 @@
       try { const n = window.Divs.ensurePending(); if (n) toast(n === 1 ? '1 DIVIDENDO PENDIENTE DE CONFIRMAR' : n + ' DIVIDENDOS PENDIENTES DE CONFIRMAR'); } catch (e) { console.warn(e); }
     }, 1500);
   };
-  M.onChange(() => { later(); checkPending(); });
+  let seenMarket = M.version();
+  M.onChange(() => {
+    if (M.version() === seenMarket) return;   // empezar/terminar de cargar no cambia nada visible
+    seenMarket = M.version(); later(); checkPending();
+  });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
   window.UI = { shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
