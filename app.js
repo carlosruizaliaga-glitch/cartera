@@ -439,10 +439,29 @@
     if (navStack.length) { Object.assign(ui, navStack.pop()); ui.scrub = null; setPref('filter', ui.filter); render(); window.scrollTo(0, 0); return; }
     if (ui.tab !== 'cartera') { ui.tab = 'cartera'; render(); window.scrollTo(0, 0); }
   }
-  try { history.replaceState({ base: true }, ''); history.pushState({ trap: true }, ''); } catch (e) { /* sin historial */ }
+  // Chrome (Android) se salta las entradas de historial creadas sin que el usuario haya tocado la pantalla.
+  // Por eso solo las creamos justo después de un toque, y mantenemos tantas como pasos se pueden deshacer
+  // (pantallas visitadas + ventanas abiertas + 1 de reserva para no salir desde CARTERA).
+  let hDepth = 0, ignorePop = 0, syncTimer = null;
+  const logicalDepth = () => (S.loggedIn() ? navStack.length + document.querySelectorAll('.sheet-bg').length + 1 : 0);
+  function syncHistory(fromUser) {
+    const L = logicalDepth();
+    try {
+      if (hDepth < L && fromUser) { while (hDepth < L) { history.pushState({ d: hDepth + 1 }, ''); hDepth++; } }
+      else if (hDepth > L) { const n = hDepth - L; hDepth = L; ignorePop += 1; history.go(-n); }
+    } catch (e) { /* sin historial */ }
+  }
+  const onUser = () => { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(true), 40); };
+  ['click', 'pointerup', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, onUser, true));
+  new MutationObserver(() => { clearTimeout(syncTimer); syncTimer = setTimeout(() => syncHistory(false), 40); })
+    .observe(document.body, { childList: true });
+  let lastExitHint = 0;
   window.addEventListener('popstate', () => {
+    if (ignorePop) { ignorePop--; return; }
+    hDepth = Math.max(0, hDepth - 1);
+    const atRoot = !document.querySelector('.sheet-bg') && !navStack.length && ui.tab === 'cartera';
     goBack();
-    try { history.pushState({ trap: true }, ''); } catch (e) { /* sin historial */ }
+    if (atRoot && S.loggedIn() && Date.now() - lastExitHint > 4000) { lastExitHint = Date.now(); toast('Vuelve a deslizar atrás para salir'); }
   });
 
   // ---------- Render ----------
