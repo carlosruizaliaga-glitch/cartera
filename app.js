@@ -114,9 +114,9 @@
       <main id="main">${inner}</main>
       <nav class="tabs">${tabs.map((t, i) => (i === 2 ? '<button class="fab" id="fab" aria-label="Añadir">+</button>' : '') +
         `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${t[1]}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
-    app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { ui.tab = b.dataset.tab; ui.scrub = null; render(); window.scrollTo(0, 0); });
+    app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => navigate({ tab: b.dataset.tab }));
     $('#syncBtn').onclick = () => { S.syncNow(); refreshMarket(true); };
-    $('#setBtn').onclick = () => { ui.tab = 'ajustes'; render(); };
+    $('#setBtn').onclick = () => navigate({ tab: 'ajustes' });
     $('#fab').onclick = openAdd;
   }
 
@@ -147,7 +147,7 @@
 
   const SEGS = [['all', 'TODO'], ['stock', 'ACCIONES'], ['crypto', 'CRIPTO'], ['watch', 'SEGUIM.']];
   const segHtml = f => `<div class="seg">${SEGS.map(o => `<button data-f="${o[0]}" class="${f === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
-  const bindSeg = () => app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { ui.filter = b.dataset.f; setPref('filter', ui.filter); render(); });
+  const bindSeg = () => app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => navigate({ filter: b.dataset.f }));
 
   // ---------- WATCHLIST (empresas que sigues sin tener acciones) ----------
   let watchLoaded = 0;
@@ -418,6 +418,32 @@
     const box = img.parentNode;
     box.className = 'logo txt'; box.textContent = img.dataset.fb;
   }, true);
+
+  // ---------- Navegación y botón/gesto "atrás" del móvil ----------
+  // Guardamos las pantallas visitadas. El gesto atrás cierra la ventana abierta, vuelve a la pantalla
+  // anterior o, si no hay, a CARTERA. Nunca cierra la app (siempre dejamos una entrada "trampa" en el historial).
+  const navStack = [];
+  function navigate(patch) {
+    const before = { tab: ui.tab, filter: ui.filter };
+    Object.assign(ui, patch); ui.scrub = null;
+    const changed = before.tab !== ui.tab || (before.filter !== ui.filter && (before.filter === 'watch' || ui.filter === 'watch'));
+    if (changed) { navStack.push(before); if (navStack.length > 40) navStack.shift(); }
+    if (patch.filter) setPref('filter', ui.filter);
+    render();
+    if (before.tab !== ui.tab || changed) window.scrollTo(0, 0);
+  }
+  function goBack() {
+    const sheets = document.querySelectorAll('.sheet-bg');
+    if (sheets.length) { sheets[sheets.length - 1].remove(); render(); return; }
+    if (!S.loggedIn()) return;
+    if (navStack.length) { Object.assign(ui, navStack.pop()); ui.scrub = null; setPref('filter', ui.filter); render(); window.scrollTo(0, 0); return; }
+    if (ui.tab !== 'cartera') { ui.tab = 'cartera'; render(); window.scrollTo(0, 0); }
+  }
+  try { history.replaceState({ base: true }, ''); history.pushState({ trap: true }, ''); } catch (e) { /* sin historial */ }
+  window.addEventListener('popstate', () => {
+    goBack();
+    try { history.pushState({ trap: true }, ''); } catch (e) { /* sin historial */ }
+  });
 
   // ---------- Render ----------
   function render() {
