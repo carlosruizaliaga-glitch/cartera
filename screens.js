@@ -24,10 +24,10 @@
     let g = '';
     data.forEach((d, i) => {
       const x = i * bw + bw * 0.18, w = bw * 0.64;
-      if (d.a > 0) g += `<rect x="${x}" y="${y(d.a)}" width="${w}" height="${H - bottom - y(d.a)}" fill="${opts.color || 'var(--yellow)'}"/>`;
+      if (d.a > 0) g += `<rect x="${x}" y="${y(d.a)}" width="${w}" height="${H - bottom - y(d.a)}" rx="${Math.min(5, w / 4)}" fill="${opts.color || 'var(--yellow)'}"/>`;
       if (d.b > 0) {
         const y0 = y((d.a || 0) + d.b), h = y(d.a || 0) - y0;
-        g += `<rect x="${x + 0.75}" y="${y0 + 0.75}" width="${w - 1.5}" height="${Math.max(0, h - 1.5)}" fill="none" stroke="${opts.color || 'var(--yellow)'}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+        g += `<rect x="${x + 0.75}" y="${y0 + 0.75}" width="${w - 1.5}" height="${Math.max(0, h - 1.5)}" rx="${Math.min(5, w / 4)}" fill="none" stroke="${opts.color || 'var(--yellow)'}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
       }
       g += `<text x="${i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" font-size="${opts.fs || 15}" fill="${d.hl ? 'var(--fg)' : '#7c7c7c'}" font-family="JetBrains Mono, monospace">${d.label}</text>`;
       if (d.note) g += `<text x="${i * bw + bw / 2}" y="${Math.max(12, y((d.a || 0) + (d.b || 0)) - 4)}" text-anchor="middle" font-size="${opts.fs ? opts.fs - 2 : 13}" fill="#e8e8e8" font-family="JetBrains Mono, monospace">${d.note}</text>`;
@@ -60,7 +60,7 @@
     }
     box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
       ${opts.ref ? `<line x1="0" x2="${W}" y1="${y(opts.ref)}" y2="${y(opts.ref)}" stroke="var(--yellow)" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>` : ''}
-      <path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+      <path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
       ${marks}
       <line class="cx" x1="0" x2="0" y1="0" y2="${H}" stroke="#e8e8e8" vector-effect="non-scaling-stroke" visibility="hidden"/>
       <rect class="cd" width="7" height="7" fill="${col}" visibility="hidden"/></svg>`;
@@ -214,7 +214,7 @@
     let html = '', lastM = '';
     ev.forEach(x => {
       const m = x.d.slice(0, 7);
-      if (m !== lastM) { html += `<h2><span>${MES_L[+m.slice(5) - 1]} ${m.slice(0, 4)}</span></h2>`; lastM = m; }
+      if (m !== lastM) { html += (lastM ? '</div>' : '') + `<h2><span>${MES_L[+m.slice(5) - 1]} ${m.slice(0, 4)}</span></h2><div class="rows">`; lastM = m; }
       const tag = x.kind === 'ex' ? '<span class="evt cyan">EX-DIV</span>' : x.kind === 'pay' ? '<span class="evt yellow">PAGO</span>' : '<span class="evt purple">RESULTADOS</span>';
       const detail = x.kind === 'earn' ? (x.est ? 'Fecha estimada' : 'Presentación de resultados')
         : x.kind === 'ex' ? `Compra antes para cobrar ${UI.price(x.e.perShare, x.e.currency)}/acc.` : (x.mine && x.e.qty > 0 ? `Cobras ~${UI.eur(x.e.net)} neto` : `${UI.price(x.e.perShare, x.e.currency)}/acc.`);
@@ -224,6 +224,7 @@
         <div class="mid"><div class="tk">${UI.esc(x.a.ticker)} ${tag}${x.kind !== 'earn' && x.e.status === 'estimated' ? '<span class="tag dim">EST.</span>' : ''}${!x.mine ? '<span class="tag dim">SEGUIM.</span>' : ''}</div>
           <div class="nm ellipsis">${detail}</div></div></div>`;
     });
+    if (lastM) html += '</div>';
     UI.shell(`
       <div class="seg">${[['all', 'TODO'], ['div', 'DIVIDENDOS'], ['earn', 'RESULTADOS']].map(o => `<button data-cf="${o[0]}" class="${st.calFilter === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>
       <div class="chips" style="margin-top:10px"><button id="cw" class="${st.calWatch ? 'on' : ''}">${st.calWatch ? '✓ ' : ''}INCLUIR SEGUIMIENTO</button></div>

@@ -270,9 +270,9 @@
     const d = pts.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.v).toFixed(1)).join('');
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
       <line x1="0" x2="${W}" y1="${y(pts[0].v)}" y2="${y(pts[0].v)}" stroke="#3a3a3a" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
-      <path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="miter" vector-effect="non-scaling-stroke"/>
+      <path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
       <line id="cx" x1="0" x2="0" y1="0" y2="${H}" stroke="#e8e8e8" stroke-width="1" vector-effect="non-scaling-stroke" visibility="hidden"/>
-      <rect id="cd" width="7" height="7" fill="${col}" visibility="hidden"/>
+      <rect id="cd" width="7" height="7" rx="3.5" fill="${col}" visibility="hidden"/>
     </svg>`;
   }
   function bindScrub(pts, total, day, dayPct) {
