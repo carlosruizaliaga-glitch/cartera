@@ -3,7 +3,7 @@
 App del móvil (PWA) para seguir mi cartera de bolsa (acciones y ETF) y cripto. Sustituye a la hoja "Cartera v3".
 
 - **Dirección:** https://carlosruizaliaga-glitch.github.io/cartera/
-- **Datos:** en la nube (Supabase, proyecto "Cartera") y copia en cada móvil. Funciona sin conexión y sincroniza al volver la red.
+- **Datos:** en la nube (Supabase, proyecto **Split Carlis**, compartido con otras apps; las tablas de esta app empiezan por `ct_`) y copia en cada móvil. Funciona sin conexión y sincroniza al volver la red.
 - **Acceso:** con mi código. Es el mismo en todos los móviles.
 
 ## Instalar en el móvil
@@ -58,4 +58,9 @@ Guarda una copia al mes en Drive o mándatela por email.
 Antes de cada `git push`, ejecutar `python tools/bump.py` (marca la versión nueva; sin esto las apps instaladas no avisan).
 
 ## Nota
-El plan gratuito de Supabase pausa el proyecto si pasa una semana sin ningún uso. Si ocurre, entra en supabase.com → proyecto **Cartera** → **Restore**. Mientras tanto, la app sigue funcionando en el móvil y sube los cambios cuando se reactiva.
+El plan gratuito de Supabase pausa el proyecto si pasa una semana sin ningún uso. Como Split Carlis lo usan varias apps, es difícil que pase; si ocurre, entra en supabase.com → proyecto **Split Carlis** → **Restore**. Mientras tanto, la app sigue funcionando en el móvil y sube los cambios cuando se reactiva.
+
+## Dónde está cada cosa
+- **App:** https://carlosruizaliaga-glitch.github.io/cartera/ (GitHub Pages, repositorio `carlosruizaliaga-glitch/cartera`).
+- **Base de datos y función de precios (`ct-market`):** proyecto Supabase **Split Carlis**. Solo se tocan los objetos `ct_`, porque el resto son de otras apps.
+- **Proyecto antiguo "Cartera"** de Supabase: pausado, sin uso (queda como copia vieja).
