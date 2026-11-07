@@ -4,13 +4,22 @@
 // primero en el móvil (funciona sin conexión) y se suben cuando hay red.
 (function (root) {
   'use strict';
-  const BASE = 'https://smkpztoukrzuwmzgxpti.supabase.co';
+  const BASE = 'https://wlspqhzihcqfehjgyuco.supabase.co';
   const API = BASE + '/rest/v1/rpc/';
-  const KEY = 'sb_publishable_MKN-ksRdcoP9IXtj7VGlPg_zaKJLcNT';
+  const KEY = 'sb_publishable_q1IeGj-Ayl82IJYlMYoo5w_9VxlLMZV';
   const LS = 'cartera.v1';
 
-  let db = { items: {}, outbox: {}, since: null, secret: null, lastSync: null };
+  let db = { items: {}, outbox: {}, since: null, secret: null, lastSync: null, base: null };
   try { Object.assign(db, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { console.error(e); }
+  // Cambio de proyecto en la nube: la primera vez, el móvil vuelve a subir TODA su copia local.
+  if (db.base !== BASE) {
+    if (db.secret) {
+      Object.values(db.items).forEach(i => { db.outbox[i.id] = i.updated_at; });
+      db.since = null;
+    }
+    db.base = BASE;
+    try { localStorage.setItem(LS, JSON.stringify(db)); } catch (e) { console.error(e); }
+  }
 
   const listeners = [];
   let status = navigator.onLine ? 'idle' : 'offline'; // idle | syncing | ok | offline | bad_secret | error
