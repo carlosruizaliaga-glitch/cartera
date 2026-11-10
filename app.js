@@ -17,7 +17,10 @@
     const [i, f] = Math.abs(n).toFixed(dec).split('.');
     return (n < 0 && Math.abs(n) >= Math.pow(10, -dec) / 2 ? '-' : '') + grp(i) + (f ? ',' + f : '');
   }
-  const eur = (n, dec) => fnum(n, dec) + ' €';
+  // Modo privado: oculta importes en € y número de acciones (para enseñar la app sin que se vean los dineros).
+  let PRIV = pref('priv', false);
+  const MASK = '••••';
+  const eur = (n, dec) => PRIV ? MASK + ' €' : fnum(n, dec) + ' €';
   const sgn = n => n > 1e-9 ? '+' : n < -1e-9 ? '−' : '';
   const sEur = (n, dec) => sgn(n) + eur(Math.abs(n), dec);
   const sPct = n => n == null || !isFinite(n) ? '—' : (Math.abs(n) < 5e-5 ? '' : sgn(n)) + fnum(Math.abs(n) * 100, 2) + '%';
@@ -32,7 +35,7 @@
     if (dec > 2) { s = s.replace(/0+$/, ''); if ((s.split(',')[1] || '').length < 2) s = fnum(n, 2); }
     return cur === 'USD' ? neg + '$' + s : neg + s + ' ' + (SYM[cur] || cur || '');
   }
-  const qtyFmt = q => Math.abs(q - Math.round(q)) < 1e-9 ? grp(String(Math.round(q))) : fnum(q, q < 1 ? 8 : 4).replace(/0+$/, '').replace(/,$/, '');
+  const qtyFmt = q => PRIV ? '••' : Math.abs(q - Math.round(q)) < 1e-9 ? grp(String(Math.round(q))) : fnum(q, q < 1 ? 8 : 4).replace(/0+$/, '').replace(/,$/, '');
   const fdate = iso => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—';
   const madrid = ts => new Date(ts).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
@@ -145,12 +148,21 @@
   setTimeout(() => updateCycle(true), 2500);
   try { if (/^\?v=\d+$/.test(location.search)) history.replaceState(history.state, '', location.pathname); } catch (e) { /* sin historial */ }
 
+  const eyeIcon = off => off
+    ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 6.2A10.7 10.7 0 0 1 12 6c5.5 0 9 6 9 6a16 16 0 0 1-3.2 3.9M6.6 7.6C4 9.3 3 12 3 12s3.5 6 9 6a9.7 9.7 0 0 0 4-.9"/><path d="M9.9 10a3 3 0 0 0 4.1 4.1"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="3"/></svg>';
+  function setPriv(v) {
+    PRIV = !!v; setPref('priv', PRIV);
+    render();
+    toast(PRIV ? 'IMPORTES OCULTOS' : 'IMPORTES VISIBLES');
+  }
   const pendingCount = () => S.list('dividend').filter(d => d.status === 'pending').length;
   function shell(inner) {
     const tabs = [['cartera', '▤', 'CARTERA'], ['dividendos', '$', 'DIVIDENDOS'], ['calendario', '▦', 'CALENDARIO'], ['analisis', '◧', 'ANÁLISIS']];
     app.innerHTML = `
       <header class="top">
         <div class="brand"><b>&gt;</b> CARTERA CARLOS</div><div class="sp"></div>
+        <button class="iconbtn${PRIV ? ' on' : ''}" id="privBtn" aria-label="${PRIV ? 'Mostrar importes' : 'Ocultar importes'}" aria-pressed="${PRIV}">${eyeIcon(PRIV)}</button>
         <button class="iconbtn" id="syncBtn">${syncDot()}</button>
         <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>
       </header>
@@ -159,6 +171,7 @@
       <nav class="tabs">${tabs.map((t, i) => (i === 2 ? '<button class="fab" id="fab" aria-label="Añadir">+</button>' : '') +
         `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${t[1]}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
     app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => navigate({ tab: b.dataset.tab }));
+    $('#privBtn').onclick = () => setPriv(!PRIV);
     $('#syncBtn').onclick = () => { S.syncNow(); refreshMarket(true); };
     $('#setBtn').onclick = () => navigate({ tab: 'ajustes' });
     $('#fab').onclick = openAdd;
@@ -579,7 +592,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   if (S.loggedIn()) refreshMarket(false);
   setTimeout(checkPending, 2500);

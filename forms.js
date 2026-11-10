@@ -238,7 +238,7 @@
       if (!sum) return;
       const a = st.a, UI = U();
       const lines = [];
-      lines.push(['IMPORTE', isFinite(st.qty) && isFinite(st.price) ? UI.price(st.qty * st.price, st.cur) : '—']);
+      lines.push(['IMPORTE', isFinite(st.qty) && isFinite(st.price) ? (UI.priv() ? '••••' : UI.price(st.qty * st.price, st.cur)) : '—']);
       lines.push([isSell ? 'RECIBES' : 'TOTAL', UI.eur(totalEur())]);
       let w = '';
       if (isSell && isFinite(st.qty) && st.qty > 0) {
