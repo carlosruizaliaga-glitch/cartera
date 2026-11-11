@@ -9,7 +9,7 @@
   const KEY = 'sb_publishable_q1IeGj-Ayl82IJYlMYoo5w_9VxlLMZV';
   const LS = 'cartera.v1';
 
-  let db = { items: {}, outbox: {}, since: null, secret: null, lastSync: null, base: null };
+  let db = { items: {}, outbox: {}, since: null, secret: null, lastSync: null, base: null, skew: 0 };
   try { Object.assign(db, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { console.error(e); }
   // Cambio de proyecto en la nube: la primera vez, el móvil vuelve a subir TODA su copia local.
   if (db.base !== BASE) {
@@ -48,7 +48,8 @@
 
   function stamp(kind, data, deleted) {
     const old = db.items[data.id];
-    const updated_at = Math.max(Date.now(), old ? old.updated_at + 1 : 0);
+    // Hora del servidor (corregida por la diferencia con el reloj del móvil), para que un reloj desfasado no pise cambios.
+    const updated_at = Math.max(Date.now() + (db.skew || 0), old ? old.updated_at + 1 : 0);
     db.items[data.id] = { id: data.id, kind, data, updated_at, deleted: !!deleted };
     db.outbox[data.id] = updated_at;
   }
@@ -84,6 +85,8 @@
       Object.keys(sent).forEach(id => { if (db.outbox[id] === sent[id]) delete db.outbox[id]; });
       if (merge(res.items || [])) version++;
       db.since = res.now;
+      const srv = Date.parse(res.now);
+      if (!isNaN(srv)) db.skew = srv - Date.now();
       db.lastSync = Date.now();
       status = 'ok';
       persist();

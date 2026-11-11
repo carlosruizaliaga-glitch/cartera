@@ -546,6 +546,81 @@
   // Reserva inicial para CARTERA (el navegador permite crear una sin haber tocado la pantalla)
   if (HAS_CW) setTimeout(() => syncHistory(true), 300);
 
+  // ---------- PIN local (bloquea la app en ESTE móvil) ----------
+  // Se guarda una huella del PIN (PBKDF2-SHA256), nunca el PIN. Es protección del móvil; los datos siguen en la nube.
+  const PIN_KEY = 'cartera.pin', PIN_ITERS = 150000, LOCK_AFTER = 2 * 60 * 1000, PIN_MAX_FAILS = 5;
+  const getPin = () => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null'); } catch (e) { return null; } };
+  const savePin = v => { try { if (v) localStorage.setItem(PIN_KEY, JSON.stringify(v)); else localStorage.removeItem(PIN_KEY); } catch (e) { /* sin almacenamiento */ } };
+  const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  async function derive(pin, salt, iters) {
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+    return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iters, hash: 'SHA-256' }, key, 256));
+  }
+  async function makePin(pin) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    return { salt: b64(salt), hash: await derive(pin, salt, PIN_ITERS), iters: PIN_ITERS, fails: 0 };
+  }
+  async function checkPin(pin, rec) { return (await derive(pin, unb64(rec.salt), rec.iters)) === rec.hash; }
+  let locked = false, hiddenAt = 0;
+  function unlock() {
+    locked = false; hiddenAt = 0;
+    const ov = document.getElementById('lock'); if (ov) ov.remove();
+    render();
+  }
+  function lock() {
+    const rec = getPin();
+    if (!rec || locked || !S.loggedIn()) return;
+    locked = true;
+    const ov = document.createElement('div');
+    ov.id = 'lock';
+    ov.innerHTML = `<div class="lockbox">
+      <div class="brand"><b>&gt;</b> CARTERA CARLOS</div>
+      <div class="lockmsg" id="lockMsg">PIN</div>
+      <div class="dots" id="lockDots"></div>
+      <div class="keys" id="lockKeys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button data-k="del" aria-label="Borrar">⌫</button><button data-k="0">0</button><button data-k="ok" class="primary" aria-label="Entrar">✓</button></div>
+      <button class="link" id="lockCode" hidden>OLVIDÉ EL PIN · USAR CÓDIGO DE ACCESO</button>
+    </div>`;
+    document.body.appendChild(ov);
+    let buf = '';
+    const dots = () => { document.getElementById('lockDots').innerHTML = Array.from({ length: 6 }, (_, i) => `<i class="${i < buf.length ? 'on' : ''}"></i>`).join(''); };
+    const msg = (t, bad) => { const m = document.getElementById('lockMsg'); m.textContent = t; m.className = 'lockmsg' + (bad ? ' bad' : ''); };
+    const fails = () => (getPin() || {}).fails || 0;
+    if (fails() >= PIN_MAX_FAILS) { msg('DEMASIADOS INTENTOS', true); document.getElementById('lockKeys').hidden = true; document.getElementById('lockCode').hidden = false; }
+    dots();
+    ov.addEventListener('click', async e => {
+      const b = e.target.closest('[data-k]'); if (!b) return;
+      const k = b.dataset.k;
+      if (k === 'del') buf = buf.slice(0, -1);
+      else if (k === 'ok') {
+        if (buf.length < 4) return msg('MÍNIMO 4 DÍGITOS', true);
+        const cur = getPin();
+        if (await checkPin(buf, cur)) { savePin(Object.assign({}, cur, { fails: 0 })); buf = ''; return unlock(); }
+        const f = (cur.fails || 0) + 1;
+        savePin(Object.assign({}, cur, { fails: f }));
+        buf = '';
+        if (f >= PIN_MAX_FAILS) { msg('DEMASIADOS INTENTOS', true); document.getElementById('lockKeys').hidden = true; document.getElementById('lockCode').hidden = false; }
+        else msg(`PIN INCORRECTO · ${PIN_MAX_FAILS - f} INTENTOS`, true);
+      }
+      else if (buf.length < 6) buf += k;
+      dots();
+    });
+    document.getElementById('lockCode').onclick = async () => {
+      const code = window.prompt('Código de acceso de la nube (el que pusiste al crear la cuenta):');
+      if (!code) return;
+      try {
+        const r = await S.login(code.trim(), false);
+        if (r === 'ok') { savePin(null); unlock(); return; }
+      } catch (e) { /* sin red */ }
+      msg('CÓDIGO INCORRECTO', true);
+    };
+  }
+  function autoLockCheck(){ if (getPin() && S.loggedIn() && !locked) lock(); }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (hiddenAt && Date.now() - hiddenAt > LOCK_AFTER) autoLockCheck();
+  });
+
   // ---------- Render ----------
   function render() {
     if (!S.loggedIn()) { renderLogin(); return; }
@@ -592,8 +667,9 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
+  autoLockCheck();
   if (S.loggedIn()) refreshMarket(false);
   setTimeout(checkPending, 2500);
   S.onChange(() => { if (S.status() === 'ok') checkPending(); });

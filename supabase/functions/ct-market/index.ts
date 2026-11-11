@@ -161,7 +161,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({}));
-    const { data: ok, error } = await sb.rpc('ct_check', { p_secret: body.secret ?? '' });
+    // Límite de intentos por dispositivo: se pasa la IP real del cliente (la función no la ve por sí sola).
+    const ip = (req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || '').split(',')[0].trim() || 'edge';
+    const { data: ok, error } = await sb.rpc('ct_check', { p_secret: body.secret ?? '', p_ip: ip });
     if (error) return json({ error: String(error.message || error) }, 429);
     if (!ok) return json({ error: 'bad_secret' }, 401);
 

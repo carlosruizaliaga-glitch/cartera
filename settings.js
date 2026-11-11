@@ -180,6 +180,12 @@
         ${rule('maxCrypto', 'MÁX. CRIPTO', R.maxCrypto)}
       </div>
 
+      <h2><span>SEGURIDAD</span><span class="${UI.pin.get() ? 'up' : 'muted'}">${UI.pin.get() ? 'PIN ACTIVO' : 'SIN PIN'}</span></h2>
+      <div class="bk" style="margin-top:10px">${UI.pin.get()
+        ? '<div class="bk2"><button id="pinChg">CAMBIAR PIN</button><button id="pinDel" class="out">QUITAR PIN</button></div>'
+        : '<button id="pinSet">🔒 PONER PIN PARA ABRIR LA APP</button>'}</div>
+      <div class="muted" style="font-size:11px;margin-top:6px">Pide el PIN al abrir la app y tras 2 minutos fuera de ella. Solo protege este móvil: tus datos siguen en la nube.</div>
+
       <h2><span>SINCRONIZACIÓN</span></h2>
       <div class="kv" style="margin-top:10px">
         <div class="k">ESTADO</div><div class="v">${status}${S.pending() ? ' · ' + S.pending() + ' POR SUBIR' : ''}</div>
@@ -200,6 +206,36 @@
       if (UI.hasUpdate()) { UI.render(); UI.toast('HAY UNA VERSIÓN NUEVA'); }
       else if (UI.upd.error) { UI.toast('No se pudo comprobar: sin conexión'); $('#updBtn').textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
       else { UI.toast('YA TIENES LA ÚLTIMA VERSIÓN'); $('#updBtn').textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
+    };
+    // ---------- PIN ----------
+    const askPin = (title, hint) => new Promise(resolve => {
+      const bg = UI.sheet(`<div class="hd"><div class="t">${UI.esc(title)}</div><button data-close>✕</button></div>
+        <form class="f" onsubmit="return false"><div class="fld"><label>${UI.esc(hint)}</label>
+        <input id="pinIn" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="••••"></div>
+        <div class="actions"><button type="button" id="pinOk" class="primary">ACEPTAR</button></div></form>`);
+      const inp = $('#pinIn', bg);
+      const done = v => { bg.remove(); resolve(v); };
+      setTimeout(() => inp.focus(), 60);
+      $('#pinOk', bg).onclick = () => { const v = inp.value.trim(); if (!/^\d{4,6}$/.test(v)) return UI.toast('PIN: entre 4 y 6 dígitos'); done(v); };
+      inp.onkeydown = e => { if (e.key === 'Enter') $('#pinOk', bg).click(); };
+      bg.addEventListener('click', e => { if (e.target === bg || e.target.closest('[data-close]')) done(null); });
+    });
+    const setPin = async () => {
+      const a = await askPin('PONER PIN', 'PIN NUEVO (4 A 6 DÍGITOS)'); if (!a) return;
+      const b = await askPin('CONFIRMA EL PIN', 'REPÍTELO'); if (!b) return;
+      if (a !== b) return UI.toast('LOS PIN NO COINCIDEN');
+      UI.pin.save(await UI.pin.make(a)); UI.toast('PIN ACTIVADO'); UI.render();
+    };
+    const pinSet = $('#pinSet'); if (pinSet) pinSet.onclick = setPin;
+    const pinChg = $('#pinChg'); if (pinChg) pinChg.onclick = async () => {
+      const cur = await askPin('PIN ACTUAL', 'PIN ACTUAL'); if (!cur) return;
+      if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
+      await setPin();
+    };
+    const pinDel = $('#pinDel'); if (pinDel) pinDel.onclick = async () => {
+      const cur = await askPin('QUITAR PIN', 'PIN ACTUAL'); if (!cur) return;
+      if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
+      UI.pin.save(null); UI.toast('PIN QUITADO'); UI.render();
     };
     $('#xExcel').onclick = exportExcel;
     $('#xOps').onclick = () => exportCsv('operaciones');
@@ -233,7 +269,7 @@
         saveSettings({ withholding: Object.assign({}, W, { [c]: v }) }); bg.remove(); UI.render();
       };
     };
-    $('#logout').onclick = () => { if (S.pending()) { UI.toast('Hay cambios sin subir: conéctate primero'); return; } S.logout(); UI.render(); };
+    $('#logout').onclick = () => { if (S.pending()) { UI.toast('Hay cambios sin subir: conéctate primero'); return; } UI.pin.save(null); S.logout(); UI.render(); };
   }
 
   window.SettingsScreen = { render, exportExcel, tables };
