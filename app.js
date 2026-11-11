@@ -593,6 +593,7 @@
     locked = false; hiddenAt = 0;
     const ov = document.getElementById('lock'); if (ov) ov.remove();
     render();
+    if (window.__runAcc) window.__runAcc();
   }
   function lock() {
     const rec = getPin();
@@ -702,6 +703,17 @@
   window.UI = { bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   autoLockCheck();
+  // Accesos directos del icono (mantener pulsado): ?accion=operacion | dividendos | calendario
+  const acc = new URLSearchParams(location.search).get('accion');
+  const runAcc = () => {
+    if (!acc || !S.loggedIn() || locked) return;
+    try { history.replaceState(history.state, '', location.pathname); } catch (e) { /* sin historial */ }
+    if (acc === 'operacion') window.Forms.openAdd();
+    else if (acc === 'dividendos') navigate({ tab: 'dividendos' });
+    else if (acc === 'calendario') navigate({ tab: 'calendario' });
+  };
+  window.__runAcc = runAcc;
+  setTimeout(runAcc, 900);
   if (S.loggedIn()) refreshMarket(false);
   setTimeout(checkPending, 2500);
   S.onChange(() => { if (S.status() === 'ok') checkPending(); });
