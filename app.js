@@ -550,7 +550,11 @@
   // Se guarda una huella del PIN (PBKDF2-SHA256), nunca el PIN. Es protección del móvil; los datos siguen en la nube.
   const PIN_KEY = 'cartera.pin', PIN_ITERS = 150000, LOCK_AFTER = 2 * 60 * 1000, PIN_MAX_FAILS = 5;
   const getPin = () => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null'); } catch (e) { return null; } };
-  const savePin = v => { try { if (v) localStorage.setItem(PIN_KEY, JSON.stringify(v)); else localStorage.removeItem(PIN_KEY); } catch (e) { /* sin almacenamiento */ } };
+  const BIO_KEY = 'cartera.bio';
+  const getBio = () => { try { return JSON.parse(localStorage.getItem(BIO_KEY) || 'null'); } catch (e) { return null; } };
+  const saveBio = v => { try { if (v) localStorage.setItem(BIO_KEY, JSON.stringify(v)); else localStorage.removeItem(BIO_KEY); } catch (e) { /* sin almacenamiento */ } };
+  // Quitar el PIN quita también la huella (sin PIN no hay bloqueo).
+  const savePin = v => { try { if (v) localStorage.setItem(PIN_KEY, JSON.stringify(v)); else { localStorage.removeItem(PIN_KEY); localStorage.removeItem(BIO_KEY); } } catch (e) { /* sin almacenamiento */ } };
   const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
   const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
   async function derive(pin, salt, iters) {
@@ -562,6 +566,28 @@
     return { salt: b64(salt), hash: await derive(pin, salt, PIN_ITERS), iters: PIN_ITERS, fails: 0 };
   }
   async function checkPin(pin, rec) { return (await derive(pin, unb64(rec.salt), rec.iters)) === rec.hash; }
+  // Huella / Face ID del propio móvil (WebAuthn, sin servidor). El PIN sigue siendo el respaldo.
+  const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+  async function bioAvailable() {
+    try { return !!(window.PublicKeyCredential && navigator.credentials && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; }
+  }
+  async function bioEnroll() {
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge: rnd(32), rp: { name: 'Cartera Carlos' },
+      user: { id: rnd(16), name: 'carlos', displayName: 'Carlos' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+      timeout: 60000 } });
+    return b64(cred.rawId);
+  }
+  async function bioVerify() {
+    const b = getBio(); if (!b) return false;
+    try {
+      const a = await navigator.credentials.get({ publicKey: { challenge: rnd(32),
+        allowCredentials: [{ type: 'public-key', id: unb64(b.id) }], userVerification: 'required', timeout: 60000 } });
+      return !!a;
+    } catch (e) { return false; }
+  }
   let locked = false, hiddenAt = 0;
   function unlock() {
     locked = false; hiddenAt = 0;
@@ -579,6 +605,7 @@
       <div class="lockmsg" id="lockMsg">PIN</div>
       <div class="dots" id="lockDots"></div>
       <div class="keys" id="lockKeys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button data-k="del" aria-label="Borrar">⌫</button><button data-k="0">0</button><button data-k="ok" class="primary" aria-label="Entrar">✓</button></div>
+      <button class="link" id="lockBio" hidden>👆 USAR HUELLA</button>
       <button class="link" id="lockCode" hidden>OLVIDÉ EL PIN · USAR CÓDIGO DE ACCESO</button>
     </div>`;
     document.body.appendChild(ov);
@@ -605,6 +632,11 @@
       else if (buf.length < 6) buf += k;
       dots();
     });
+    const tryBio = async () => {
+      if (!getBio() || (getPin() || {}).fails >= PIN_MAX_FAILS) return;
+      if (await bioVerify()) { savePin(Object.assign({}, getPin(), { fails: 0 })); unlock(); }
+    };
+    if (getBio() && fails() < PIN_MAX_FAILS) { document.getElementById('lockBio').hidden = false; document.getElementById('lockBio').onclick = tryBio; setTimeout(tryBio, 350); }
     document.getElementById('lockCode').onclick = async () => {
       const code = window.prompt('Código de acceso de la nube (el que pusiste al crear la cuenta):');
       if (!code) return;
@@ -667,7 +699,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   autoLockCheck();
   if (S.loggedIn()) refreshMarket(false);

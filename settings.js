@@ -182,7 +182,8 @@
 
       <h2><span>SEGURIDAD</span><span class="${UI.pin.get() ? 'up' : 'muted'}">${UI.pin.get() ? 'PIN ACTIVO' : 'SIN PIN'}</span></h2>
       <div class="bk" style="margin-top:10px">${UI.pin.get()
-        ? '<div class="bk2"><button id="pinChg">CAMBIAR PIN</button><button id="pinDel" class="out">QUITAR PIN</button></div>'
+        ? `<div class="bk2"><button id="pinChg">CAMBIAR PIN</button><button id="pinDel" class="out">QUITAR PIN</button></div>
+           <button id="bioBtn">${UI.bio.get() ? '✓ HUELLA ACTIVA · QUITAR' : '👆 ACTIVAR HUELLA / FACE ID'}</button>`
         : '<button id="pinSet">🔒 PONER PIN PARA ABRIR LA APP</button>'}</div>
       <div class="muted" style="font-size:11px;margin-top:6px">Pide el PIN al abrir la app y tras 2 minutos fuera de ella. Solo protege este móvil: tus datos siguen en la nube.</div>
 
@@ -231,6 +232,14 @@
       const cur = await askPin('PIN ACTUAL', 'PIN ACTUAL'); if (!cur) return;
       if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
       await setPin();
+    };
+    const bioBtn = $('#bioBtn'); if (bioBtn) bioBtn.onclick = async () => {
+      if (UI.bio.get()) { UI.bio.save(null); UI.toast('HUELLA QUITADA'); return UI.render(); }
+      if (!(await UI.bio.available())) return UI.toast('Este móvil no ofrece huella para el navegador');
+      const cur = await askPin('CONFIRMA CON TU PIN', 'PIN ACTUAL'); if (!cur) return;
+      if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
+      try { UI.bio.save({ id: await UI.bio.enroll() }); UI.toast('HUELLA ACTIVADA'); UI.render(); }
+      catch (e) { UI.toast('No se pudo activar la huella'); }
     };
     const pinDel = $('#pinDel'); if (pinDel) pinDel.onclick = async () => {
       const cur = await askPin('QUITAR PIN', 'PIN ACTUAL'); if (!cur) return;
