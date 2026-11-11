@@ -1,7 +1,11 @@
 # Marca una versión nueva de la app (hora de Madrid). Se ejecuta antes de cada publicación:
 #   python tools/bump.py
 # Escribe version.js (la versión que lleva la app) y version.json (la que la app consulta en internet).
-import json, datetime as dt, os
+import json, datetime as dt, os, subprocess, sys
+
+# Antes de marcar versión: las cifras tienen que cuadrar. Si fallan, no se publica.
+if subprocess.run(['node', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test-cifras.js')]).returncode != 0:
+    sys.exit('Publicación cancelada: fallan las pruebas de cifras.')
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 v = dt.datetime.now().strftime('%Y-%m-%d %H:%M')
