@@ -502,7 +502,8 @@
   // - Resto de navegadores: entradas de historial (respaldo).
   // En ambos casos mantenemos tantos "pasos" como se pueden deshacer: pantallas visitadas + ventanas abiertas
   // + 1 de reserva para no salir desde CARTERA.
-  const HAS_CW = typeof window.CloseWatcher === 'function';
+  const NATIVE = !!window.AndroidBridge;   // dentro de la app de Android (envoltorio nativo)
+  const HAS_CW = typeof window.CloseWatcher === 'function' && !NATIVE;
   let hDepth = 0, ignorePop = 0, syncTimer = null;
   const watchers = [];
   const logicalDepth = () => (S.loggedIn() ? navStack.length + document.querySelectorAll('.sheet-bg').length + 1 : 0);
@@ -514,6 +515,7 @@
     } catch (e) { /* no disponible */ }
   }
   function setDepth(target, canGrow) {
+    if (NATIVE) return;   // el botón atrás lo gestiona la app nativa (window.__nativeBack)
     if (HAS_CW) {
       if (canGrow) while (watchers.length < target) addWatcher();
       while (watchers.length > target) { const w = watchers.pop(); w.onclose = null; try { w.destroy(); } catch (e) { /* ya cerrado */ } }
@@ -538,7 +540,14 @@
     goBack();
     if (atRoot && S.loggedIn() && Date.now() - lastExitHint > 4000) { lastExitHint = Date.now(); toast('Vuelve a deslizar atrás para salir'); }
   }
-  if (!HAS_CW) window.addEventListener('popstate', () => {
+  // La app nativa llama a esto cuando se pulsa atrás: true = lo he gestionado; false = estamos en CARTERA, que salga.
+  window.__nativeBack = () => {
+    if (typeof locked !== 'undefined' && locked) return true;
+    if (!document.querySelector('.sheet-bg') && !navStack.length && ui.tab === 'cartera') return false;
+    goBack();
+    return true;
+  };
+  if (!HAS_CW && !NATIVE) window.addEventListener('popstate', () => {
     if (ignorePop) { ignorePop--; return; }
     hDepth = Math.max(0, hDepth - 1);
     onBack();
@@ -568,10 +577,17 @@
   async function checkPin(pin, rec) { return (await derive(pin, unb64(rec.salt), rec.iters)) === rec.hash; }
   // Huella / Face ID del propio móvil (WebAuthn, sin servidor). El PIN sigue siendo el respaldo.
   const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+  const nativeBio = () => new Promise(res => {
+    const t = setTimeout(() => res(false), 120000);
+    window.__bioResult = ok => { clearTimeout(t); res(!!ok); };
+    try { window.AndroidBridge.bioAuth(); } catch (e) { clearTimeout(t); res(false); }
+  });
   async function bioAvailable() {
+    if (NATIVE) { try { return !!window.AndroidBridge.bioAvailable(); } catch (e) { return false; } }
     try { return !!(window.PublicKeyCredential && navigator.credentials && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; }
   }
   async function bioEnroll() {
+    if (NATIVE) { if (!(await nativeBio())) throw new Error('cancelado'); return 'native'; }
     const cred = await navigator.credentials.create({ publicKey: {
       challenge: rnd(32), rp: { name: 'Cartera Carlos' },
       user: { id: rnd(16), name: 'carlos', displayName: 'Carlos' },
@@ -582,6 +598,7 @@
   }
   async function bioVerify() {
     const b = getBio(); if (!b) return false;
+    if (NATIVE) return nativeBio();
     try {
       const a = await navigator.credentials.get({ publicKey: { challenge: rnd(32),
         allowCredentials: [{ type: 'public-key', id: unb64(b.id) }], userVerification: 'required', timeout: 60000 } });
@@ -654,6 +671,39 @@
     if (hiddenAt && Date.now() - hiddenAt > LOCK_AFTER) autoLockCheck();
   });
 
+  // ---------- App de Android: resumen para el widget y eventos para los avisos ----------
+  let nativeTimer = null;
+  function scheduleNative() { clearTimeout(nativeTimer); nativeTimer = setTimeout(pushNative, 1500); }
+  function pushNative() {
+    const B = window.AndroidBridge;
+    if (!B || !S.loggedIn()) return;
+    try {
+      const mdl = model();
+      if (!mdl.rows.length) return;
+      const rows = mdl.rows, t = today();
+      const total = rows.reduce((x, r) => x + (r.value || 0), 0);
+      const day = rows.reduce((x, r) => x + (r.day || 0), 0);
+      const dayPct = total - day ? day / (total - day) : 0;
+      const stocks = rows.filter(r => r.a.type !== 'crypto').map(r => r.a);
+      const evs = window.Divs.upcoming(stocks, { back: 0 }).filter(e => e.pay >= t && e.qty > 0);
+      const dd = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+      const next = evs[0];
+      // Con el modo privado activado, eur() ya devuelve "••••": el widget y los avisos no enseñan importes.
+      B.saveSummary(JSON.stringify({ v: eur(total), d: sEur(day) + ' (' + sPct(dayPct) + ')', up: day > 1e-9 ? 1 : day < -1e-9 ? -1 : 0,
+        n: next ? next.asset.ticker + ' · ' + dd(next.pay) + ' · ~' + eur(next.net) : '', t: Date.now() }));
+      const out = [], limit = C.addDays(t, 60);
+      evs.forEach(e => {
+        out.push({ t: e.asset.ticker, k: 'pay', d: e.pay, a: eur(e.net) });
+        if (e.ex && e.ex >= t) out.push({ t: e.asset.ticker, k: 'ex', d: e.ex });
+      });
+      stocks.forEach(a => {
+        const inf = a.yahoo && M.info(a.yahoo);
+        ((inf && inf.earnings) || []).forEach(d => { if (d >= t) out.push({ t: a.ticker, k: 'earn', d }); });
+      });
+      B.saveEvents(JSON.stringify(out.filter(e => e.d <= limit)));
+    } catch (e) { console.warn('native', e); }
+  }
+
   // ---------- Render ----------
   function render() {
     if (!S.loggedIn()) { renderLogin(); return; }
@@ -665,6 +715,7 @@
     else if (ui.tab === 'analisis') window.Analysis.render();
     else window.SettingsScreen.render();
     window.scrollTo(0, y);
+    if (NATIVE) scheduleNative();
   }
 
   let pending = null, seenVersion = S.version();

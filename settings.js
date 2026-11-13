@@ -12,6 +12,15 @@
 
   // ---------- Descargar / compartir un archivo ----------
   async function shareOrDownload(filename, blob) {
+    // Dentro de la app de Android: se guarda en la carpeta Descargas.
+    if (window.AndroidBridge && window.AndroidBridge.saveFile) {
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      window.AndroidBridge.saveFile(filename, blob.type || 'application/octet-stream', btoa(bin));
+      markBackup();
+      return;
+    }
     try {
       const file = new File([blob], filename, { type: blob.type });
       if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: filename }); markBackup(); return; }
@@ -180,6 +189,10 @@
         ${rule('maxCrypto', 'MÁX. CRIPTO', R.maxCrypto)}
       </div>
 
+      ${window.AndroidBridge ? `<h2><span>AVISOS Y WIDGET</span><span class="${window.AndroidBridge.notificationsEnabled() ? 'up' : 'muted'}">${window.AndroidBridge.notificationsEnabled() ? 'AVISOS ACTIVOS' : 'AVISOS DESACTIVADOS'}</span></h2>
+      <div class="bk" style="margin-top:10px">${window.AndroidBridge.notificationsEnabled() ? '' : '<button id="ntfBtn" class="primary">🔔 ACTIVAR AVISOS DE DIVIDENDOS</button>'}</div>
+      <div class="muted" style="font-size:11px;margin-top:6px">Te aviso el día antes y el mismo día de cada pago, ex-dividendo y resultados de tus empresas. <b>Widget:</b> mantén pulsada la pantalla de inicio → Widgets → Cartera Carlos.</div>
+      ` : ''}
       <h2><span>SEGURIDAD</span><span class="${UI.pin.get() ? 'up' : 'muted'}">${UI.pin.get() ? 'PIN ACTIVO' : 'SIN PIN'}</span></h2>
       <div class="bk" style="margin-top:10px">${UI.pin.get()
         ? `<div class="bk2"><button id="pinChg">CAMBIAR PIN</button><button id="pinDel" class="out">QUITAR PIN</button></div>
@@ -246,6 +259,7 @@
       if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
       UI.pin.save(null); UI.toast('PIN QUITADO'); UI.render();
     };
+    const ntfBtn = $('#ntfBtn'); if (ntfBtn) ntfBtn.onclick = () => window.AndroidBridge.requestNotifications();
     $('#xExcel').onclick = exportExcel;
     $('#xOps').onclick = () => exportCsv('operaciones');
     $('#xDivs').onclick = () => exportCsv('dividendos');
