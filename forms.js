@@ -241,9 +241,41 @@
       lines.push(['IMPORTE', isFinite(st.qty) && isFinite(st.price) ? (UI.priv() ? '••••' : UI.price(st.qty * st.price, st.cur)) : '—']);
       lines.push([isSell ? 'RECIBES' : 'TOTAL', UI.eur(totalEur())]);
       let w = '';
+      // Comprobador: peso resultante frente a tus reglas y renta que añade la compra
+      try {
+        const mdl = UI.model(), te = totalEur();
+        if (isFinite(st.qty) && st.qty > 0 && isFinite(te) && te > 0 && mdl.rows.length) {
+          const R = Object.assign({ maxPerCompany: 7, maxHighYield: 5, maxCrypto: 5 }, ((S.get('settings') || {}).rules) || {});
+          const delta = isSell ? -te : te;
+          const sum = f => mdl.rows.filter(f).reduce((s, r) => s + (r.value || 0), 0);
+          const total = sum(() => true), newTotal = total + delta;
+          const cur = sum(r => r.a.id === a.id), nv = Math.max(0, cur + delta);
+          const crypto = a.type === 'crypto';
+          const grp = crypto ? sum(r => r.a.type === 'crypto') : a.highYield ? sum(r => r.a.highYield) : cur;
+          const lim = crypto ? R.maxCrypto : a.highYield ? R.maxHighYield : R.maxPerCompany;
+          const gv = Math.max(0, grp + delta), wNew = newTotal > 0 ? gv / newTotal * 100 : 0, wOld = total > 0 ? grp / total * 100 : 0;
+          const over = wNew > lim + 1e-9;
+          const lbl = crypto ? 'PESO CRIPTO' : a.highYield ? 'PESO ALTO RENDIM.' : 'PESO EMPRESA';
+          lines.push([lbl, `<span class="${over ? 'down' : 'up'}">${UI.fnum(wOld, 1)}% → ${UI.fnum(wNew, 1)}%</span> <span class="dim">(máx. ${UI.fnum(lim, 0)}%)</span>`]);
+          if (over && !isSell) w += `<div class="warn red">CON ESTA COMPRA SUPERAS TU LÍMITE (${UI.fnum(lim, 0)}%). Pasarías al ${UI.fnum(wNew, 1)}%.</div>`;
+          if (!isSell && !crypto && window.Divs) {
+            const ann = window.Divs.annualPerShare(a), rate = st.cur === 'EUR' ? 1 : (M.rate(st.cur) || 1);
+            const inc = ann > 0 ? st.qty * ann / rate * (1 - window.Divs.whPct(a)) : 0;
+            if (inc > 0) lines.push(['RENTA QUE AÑADE', `<span class="yellow">+${UI.eur(inc)}/año</span> <span class="dim">(${UI.eur(inc / 12)}/mes)</span>`]);
+          }
+        }
+      } catch (e) { /* el comprobador nunca debe romper el formulario */ }
       if (isSell && isFinite(st.qty) && st.qty > 0) {
         const sim = C.simulateSale(others(), a.id, st.qty, totalEur());
         if (sim) {
+          if (sim.pl > 0) {
+            // Ahorro (España 2026): 19% hasta 6.000 €, 21% hasta 50.000, 23% hasta 200.000, 26% hasta 300.000, 28% el resto
+            const tax = b => [[6000, .19], [44000, .21], [150000, .23], [100000, .26], [Infinity, .28]].reduce((o, [w2, r]) => { const x = Math.min(Math.max(b - o.d, 0), w2); return { t: o.t + x * r, d: o.d + w2 }; }, { t: 0, d: 0 }).t;
+            try {
+              const yr = st.date.slice(0, 4), base = Object.values(UI.model().pos).reduce((s, p) => s + ((p.realized && p.realized[yr]) || 0), 0);
+              lines.push(['IMPUESTO APROX.', `<span class="yellow">~${UI.eur(tax(Math.max(0, base + sim.pl)) - tax(Math.max(0, base)))}</span> <span class="dim">(ahorro, orientativo)</span>`]);
+            } catch (e) { /* sin impuesto */ }
+          }
           lines.push(['COSTE FIFO', UI.eur(sim.cost)]);
           lines.push(['PLUSVALÍA', `<span class="${UI.cls(sim.pl)}">${UI.sEur(sim.pl)} (${UI.sPct(sim.cost ? sim.pl / sim.cost : 0)})</span>`]);
           if (sim.short > EPS) w += `<div class="warn red">VENDES MÁS DE LO QUE TIENES (${UI.qtyFmt(sim.available)}).</div>`;

@@ -197,6 +197,9 @@
         ${rule('maxHighYield', 'MÁX. mREIT / ALTO RENDIMIENTO', R.maxHighYield)}
         ${rule('maxCrypto', 'MÁX. CRIPTO', R.maxCrypto)}
       </div>
+      <h2><span>OBJETIVO DE RENTA</span></h2>
+      <div class="whg one"><label><span>RENTA NETA ANUAL QUE QUIERES</span><input id="goal" inputmode="decimal" value="${st.incomeGoal ? pct(st.incomeGoal) : ''}" placeholder="p. ej. 3000"><em>€</em></label></div>
+      <div class="muted" style="font-size:11px;margin-top:6px">Se muestra en Inicio con una barra de progreso frente a tu renta prevista.</div>
 `,
       avisos: `
       ${window.AndroidBridge ? `<h2><span>AVISOS Y WIDGET</span><span class="${window.AndroidBridge.notificationsEnabled() ? 'up' : 'muted'}">${window.AndroidBridge.notificationsEnabled() ? 'AVISOS ACTIVOS' : 'AVISOS DESACTIVADOS'}</span></h2>
@@ -239,7 +242,7 @@
     const menu = grp('CARTERA')
       + item('brokers', 'Brokers y comisiones', brokers.length + ' brokers')
       + item('ret', 'Retención por país', Object.keys(W).length + ' países · tope ' + pct(st.deductibleMax != null ? st.deductibleMax : 15) + ' %')
-      + item('reglas', 'Reglas de la cartera', 'máx. ' + pct(R.maxPerCompany) + ' % por empresa')
+      + item('reglas', 'Reglas y objetivo', 'máx. ' + pct(R.maxPerCompany) + ' % por empresa' + (st.incomeGoal ? ' · objetivo ' + UI.eur(st.incomeGoal, 0) : ''))
       + grp('DATOS')
       + item('copia', 'Copia de seguridad', lb ? 'última ' + UI.fdate(new Date(lb).toLocaleDateString('sv-SE')) : 'nunca hecha')
       + item('sync', 'Sincronización', S.status() === 'ok' ? 'al día' : S.status() === 'offline' ? 'sin conexión' : S.status())
@@ -325,6 +328,7 @@
       if (!(v > 0 && v <= 100)) return UI.toast('Porcentaje entre 0 y 100');
       saveSettings({ rules: Object.assign({}, R, { [inp.dataset.r]: v }) }); UI.toast('REGLA GUARDADA');
     });
+    Q('#goal').onchange = e => { const v = pnum(e.target.value); if (e.target.value.trim() === '') { saveSettings({ incomeGoal: 0 }); UI.toast('OBJETIVO QUITADO'); } else if (v > 0) { saveSettings({ incomeGoal: v }); UI.toast('OBJETIVO GUARDADO'); } };
     Q('#addC').onclick = () => {
       const bg = UI.sheet(`<div class="hd"><div class="t">+ PAÍS</div><button data-close>✕</button></div>
         <form class="f" onsubmit="return false"><div class="grid2">

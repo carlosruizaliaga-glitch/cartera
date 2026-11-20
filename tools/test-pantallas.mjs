@@ -90,7 +90,7 @@ try {
   await sleep(500);
   await page.evaluate(() => { const q = document.getElementById('qty'); q.value = '10'; q.dispatchEvent(new Event('input')); });
   await sleep(300);
-  check('Formulario de compra calcula el total', (await textoPantalla()).includes('TOTAL'));
+  { const t = await textoPantalla(); check('Formulario de compra calcula el total y el peso resultante', t.includes('TOTAL') && /PESO (EMPRESA|ALTO)/.test(t)); }
   await page.evaluate(() => document.querySelector('[data-close]').click()); await sleep(300);
 
   // --- Modo privado: no debe verse ningún importe grande en euros ---

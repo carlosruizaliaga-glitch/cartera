@@ -299,6 +299,11 @@
       const d = e => e.pay.slice(8, 10) + '/' + e.pay.slice(5, 7);
       out.push(`El <b>${d(D.evs[0])}</b> cobras ~${eur(D.evs[0].net, 0)} de ${esc(D.evs[0].asset.ticker)}.` + (D.evs[1] ? ` Después, ${esc(D.evs[1].asset.ticker)} el <b>${d(D.evs[1])}</b>.` : ''));
     }
+    const goal = (S.get('settings') || {}).incomeGoal;
+    if (goal > 0 && D.fc) {
+      const pc = D.fc.net / goal * 100;
+      out.unshift(`Objetivo de renta: <b class="g">${eur(D.fc.net, 0)} de ${eur(goal, 0)}</b> (${fnum(pc, 0)} %).` + (pc < 100 ? ` Te faltan ${eur(goal - D.fc.net, 0)} netos al año.` : ' ¡Conseguido!') + `<div class="meter"><i style="width:${Math.min(100, pc).toFixed(0)}%"></i></div>`);
+    }
     const concl = out.length ? `<h2><span>CONCLUSIONES</span></h2><div class="ins">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';
     return perHtml + concl;
   }
