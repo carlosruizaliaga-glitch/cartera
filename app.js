@@ -7,6 +7,21 @@
   // ---------- Preferencias locales (solo de este móvil) ----------
   const pref = (k, def) => { try { const v = localStorage.getItem('cartera.pref.' + k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } };
   const setPref = (k, v) => { try { localStorage.setItem('cartera.pref.' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } };
+  // ---------- Apariencia: tema (auto/oscuro/claro) y tamaño de letra (solo este móvil) ----------
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  function applyTheme() {
+    const mode = pref('theme', 'dark');
+    const light = mode === 'light' || (mode === 'auto' && mq && mq.matches);
+    const el = document.documentElement;
+    el.dataset.theme = light ? 'light' : 'dark';
+    el.dataset.fs = pref('fs', 'normal');
+    const m = document.querySelector('meta[name=theme-color]');
+    if (m) m.content = light ? '#f3f7f6' : '#0a1214';
+  }
+  applyTheme();
+  if (mq && mq.addEventListener) mq.addEventListener('change', applyTheme);
+  const theme = { get: () => pref('theme', 'dark'), set: v => { setPref('theme', v); applyTheme(); }, fs: () => pref('fs', 'normal'), setFs: v => { setPref('fs', v); applyTheme(); } };
+
   const ui = { tab: 'cartera', filter: pref('filter', 'all'), range: pref('range', '1M'), pct: pref('pct', false), scrub: null };
 
   // ---------- Formato español ----------
@@ -265,7 +280,7 @@
     const kpi = (k, v, c) => `<div><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`;
     const nx = D.evs[0];
     const lines = `<div class="isub">${D.cobrado || nx ? `COBRADO ${D.year} <b class="yellow">${eur(D.cobrado)}</b>${nx ? ` · PRÓXIMO ${esc(nx.asset.ticker)} ${nx.pay.slice(8, 10)}/${nx.pay.slice(5, 7)} <b class="yellow">~${eur(nx.net)}</b>` : ''}` : ''}</div>`;
-    const strip = D.fc ? `<div class="kpis">${kpi('RENTA/AÑO', eur(D.fc.net), 'yellow')}${kpi('YIELD', fnum(D.fc.yld * 100, 1) + ' %')}${kpi('YoC', fnum(D.fc.yoc * 100, 1) + ' %')}${kpi('PLUSVAL. ' + D.year.slice(2), sEur(D.realized), cls(D.realized))}</div>` : '';
+    const strip = D.fc ? `<div class="kpis">${kpi('RENTA/AÑO', eur(D.fc.net, 0), 'yellow')}${kpi('YIELD', fnum(D.fc.yld * 100, 1) + ' %')}${kpi('YoC', fnum(D.fc.yoc * 100, 1) + ' %')}${kpi('PLUSVAL. ' + D.year.slice(2), sEur(D.realized, 0), cls(D.realized))}</div>` : '';
     return lines + strip;
   }
   function inicioBottom(D, f, rows, total) {
@@ -810,7 +825,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   document.addEventListener('DOMContentLoaded', () => { if (!window.Divs || S.loggedIn()) render(); });
   autoLockCheck();

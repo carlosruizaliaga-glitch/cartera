@@ -157,6 +157,11 @@
     const rule = (key, label, v) => `<label><span>${label}</span><input data-r="${key}" inputmode="decimal" value="${pct(v)}"><em>%</em></label>`;
     const status = S.status() === 'ok' ? '<span class="up">AL DÍA</span>' : S.status() === 'offline' ? '<span class="yellow">SIN CONEXIÓN</span>' : UI.esc(S.status().toUpperCase());
     const blocks = {
+      apariencia: `<h2><span>TEMA</span></h2>
+        <div class="seg">${[['dark', 'OSCURO'], ['light', 'CLARO'], ['auto', 'AUTOMÁTICO']].map(o => `<button data-th="${o[0]}" class="${UI.theme.get() === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>
+        <div class="muted" style="font-size:11px;margin:6px 0 4px">Automático sigue el modo claro/oscuro de tu móvil.</div>
+        <h2><span>TAMAÑO DE LETRA</span></h2>
+        <div class="seg">${[['normal', 'NORMAL'], ['big', 'GRANDE']].map(o => `<button data-fs="${o[0]}" class="${UI.theme.fs() === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`,
       app: `      <h2><span>LA APP</span><span class="${UI.hasUpdate() ? 'cyan' : 'muted'}">${UI.hasUpdate() ? 'HAY VERSIÓN NUEVA' : 'AL DÍA'}</span></h2>
       <div class="kv" style="margin-top:10px">
         <div class="k">INSTALADA</div><div class="v">${UI.esc(window.APP_VERSION || '—')}</div>
@@ -226,6 +231,7 @@
       sync: '<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3M18 3v4h-4M6 21v-4h4"/>',
       avisos: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/>',
       seg: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+      apariencia: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
       app: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
     };
     const item = (k, title, summary) => `<div class="sitem" data-sub="${k}"><span class="sic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg></span><span class="stx"><b>${title}</b><em>${summary}</em></span><span class="sch">›</span></div>`;
@@ -238,6 +244,7 @@
       + item('copia', 'Copia de seguridad', lb ? 'última ' + UI.fdate(new Date(lb).toLocaleDateString('sv-SE')) : 'nunca hecha')
       + item('sync', 'Sincronización', S.status() === 'ok' ? 'al día' : S.status() === 'offline' ? 'sin conexión' : S.status())
       + grp('SISTEMA')
+      + item('apariencia', 'Apariencia', ({ dark: 'oscuro', light: 'claro', auto: 'automático' })[UI.theme.get()] + (UI.theme.fs() === 'big' ? ' · letra grande' : ''))
       + item('seg', 'Seguridad', UI.pin.get() ? 'PIN activo' + (UI.bio.get() ? ' · huella' : '') : 'sin PIN')
       + (window.AndroidBridge ? item('avisos', 'Avisos y widget', window.AndroidBridge.notificationsEnabled() ? 'avisos activos' : 'avisos desactivados') : '')
       + item('app', 'La app', (window.APP_VERSION || '—') + (UI.hasUpdate() ? ' · hay versión nueva' : ''))
@@ -249,6 +256,8 @@
       : menu);
     const Q = sel => $(sel) || {};
     document.querySelectorAll('[data-sub]').forEach(el => el.onclick = () => UI.navigate({ sub: el.dataset.sub }));
+    document.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { UI.theme.set(b.dataset.th); UI.render(); });
+    document.querySelectorAll('[data-fs]').forEach(b => b.onclick = () => { UI.theme.setFs(b.dataset.fs); UI.render(); });
     Q('#subBack').onclick = () => UI.goBack();
     Q('#updBtn').onclick = async () => {
       if (UI.hasUpdate()) return UI.applyUpdate();
