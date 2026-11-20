@@ -283,7 +283,7 @@
     const strip = D.fc ? `<div class="kpis">${kpi('RENTA/AÑO', eur(D.fc.net, 0), 'yellow')}${kpi('YIELD', fnum(D.fc.yld * 100, 1) + ' %')}${kpi('YoC', fnum(D.fc.yoc * 100, 1) + ' %')}${kpi('PLUSVAL. ' + D.year.slice(2), sEur(D.realized, 0), cls(D.realized))}</div>` : '';
     return lines + strip;
   }
-  function inicioBottom(D, f, rows, total) {
+  function inicioBottom(D, f, rows, total, cost) {
     const max = Math.max(1, ...D.per.map(p => Math.abs(p.chg || 0)));
     const perHtml = `<h2><span>RENDIMIENTO</span><span class="tog" id="perfTog">${ui.perfPct ? '%' : '€'}</span></h2><div class="perf">${D.per.map(p => {
       if (p.chg == null) return `<div class="dr"><span>${p.k}</span><div class="t"></div><b class="muted">—</b></div>`;
@@ -312,7 +312,21 @@
       out.unshift(`Objetivo de renta: <b class="g">${eur(D.fc.net, 0)} de ${eur(goal, 0)}</b> (${fnum(pc, 0)} %).` + (pc < 100 ? ` Te faltan ${eur(goal - D.fc.net, 0)} netos al año.` : ' ¡Conseguido!') + `<div class="meter"><i style="width:${Math.min(100, pc).toFixed(0)}%"></i></div>`);
     }
     const concl = out.length ? `<h2><span>CONCLUSIONES</span></h2><div class="ins">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';
-    return perHtml + concl;
+    // De un vistazo: datos sueltos que ayudan a leer la cartera
+    const mv = rows.filter(r => r.dayPct != null && r.value != null).sort((x, y) => y.dayPct - x.dayPct);
+    const fmtMv = r => r ? `${esc(r.a.ticker)} <span class="${cls(r.dayPct)}">${sPct(r.dayPct)}</span>` : '—';
+    const top5 = total ? rows.slice(0, 5).reduce((s, r) => s + (r.value || 0), 0) / total * 100 : 0;
+    const nSt = rows.filter(r => r.a.type !== 'crypto').length, nCr = rows.length - nSt;
+    const crW = total ? rows.filter(r => r.a.type === 'crypto').reduce((s, r) => s + (r.value || 0), 0) / total * 100 : 0;
+    const t = today(), lim = C.addDays(t, 30);
+    const in30 = D.evs.filter(e => e.pay <= lim).reduce((s, e) => s + (e.net || 0), 0);
+    const cell = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
+    const glance = `<h2><span>DE UN VISTAZO</span></h2><div class="glance">
+      ${cell('MEJOR HOY', fmtMv(mv[0]))}${cell('PEOR HOY', fmtMv(mv[mv.length - 1]))}
+      ${cell('TOP 5 PESAN', fnum(top5, 1) + ' %')}${cell('POSICIONES', nSt + ' acc. · ' + nCr + ' cripto')}
+      ${cell('CRIPTO', fnum(crW, 1) + ' %')}${cell('COBROS 30 DÍAS', in30 > 0 ? '<span class="yellow">~' + eur(in30, 0) + '</span>' : '—')}
+      ${cell('COSTE', eur(cost, 0))}${cell('P/L LATENTE', `<span class="${cls(total - cost)}">${sEur(total - cost, 0)} (${sPct(cost ? (total - cost) / cost : 0)})</span>`)}</div>`;
+    return perHtml + concl + glance;
   }
 
   // ---------- Resumen para Telegram (se manda por la función ct-notify) ----------
@@ -384,13 +398,10 @@
       </section>
       <div class="chart" id="chart">${chartSvg(pts, rchg)}</div>
       <div class="ranges">${RANGES.map(r => `<button data-r="${r[0]}" class="${ui.range === r[0] ? 'on' : ''}">${r[1]}</button>`).join('')}</div>
+      ${inicioBottom(D, f, rows, total, cost)}
       <h2><span>POSICIONES · ${rows.length}</span><span class="tog" id="tog">${ui.pct ? '%' : '€'}</span></h2>
       <div class="rows">${rows.map(r => posRow(r, total)).join('') || '<div class="soon">SIN POSICIONES</div>'}</div>
-      <div class="kv" style="margin:16px 0 4px">
-        <div class="k">COSTE</div><div class="v">${eur(cost)}</div>
-        <div class="k">P/L LATENTE</div><div class="v ${cls(total - cost)}">${sEur(total - cost)} (${sPct(cost ? (total - cost) / cost : 0)})</div>
-      </div>
-      ${inicioBottom(D, f, rows, total)}`);
+`);
 
     bindSeg();
     app.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { ui.range = b.dataset.r; setPref('range', ui.range); render(); });
