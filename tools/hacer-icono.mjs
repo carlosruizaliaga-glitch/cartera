@@ -16,13 +16,13 @@ const defs = `<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop of
 <radialGradient id="bg1" cx=".5" cy=".15" r=".9"><stop offset="0" stop-color="#1c3b38"/><stop offset="1" stop-color="#0A1214"/></radialGradient></defs>`;
 // scale: 1 = ocupa todo; 0.8 = zona segura del icono "maskable" / adaptable de Android
 const svg = (rx, scale) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">${defs}
-<rect width="512" height="512" rx="${rx}" fill="url(#bg1)"/><g transform="translate(256 256) scale(${scale}) translate(-256 -256)">${candles}</g></svg>`;
-const fg = scale => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">${defs}<g transform="translate(256 256) scale(${scale}) translate(-256 -256)">${candles}</g></svg>`;
+<rect width="512" height="512" rx="${rx}" fill="url(#bg1)"/><g transform="translate(256 256) scale(${scale}) translate(-256 -256)"><g transform="translate(3 36)">${candles}</g></g></g></svg>`;
+const fg = scale => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">${defs}<g transform="translate(256 256) scale(${scale}) translate(-256 -256)"><g transform="translate(3 36)">${candles}</g></g></svg>`;
 
 const jobs = [
   ['icon-512.png', 512, svg(112, 0.92), true], ['icon-192.png', 192, svg(112, 0.92), true],
   ['icon-180.png', 180, svg(0, 0.86), false], ['icon-maskable.png', 512, svg(0, 0.7), false],
-  ['_fg-android.png', 432, fg(0.62), true], ['_bg-android.png', 432, svg(0, 0) , false]
+  ['_fg-android.png', 432, fg(0.66), true], ['_bg-android.png', 432, svg(0, 0) , false]
 ];
 const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'].find(p => fs.existsSync(p));
 const b = await puppeteer.launch({ executablePath: CHROME, headless: true });
