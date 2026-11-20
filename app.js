@@ -323,8 +323,8 @@
     const cell = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
     const glance = `<h2><span>DE UN VISTAZO</span></h2><div class="glance">
       ${cell('MEJOR HOY', fmtMv(mv[0]))}${cell('PEOR HOY', fmtMv(mv[mv.length - 1]))}
-      ${cell('TOP 5 PESAN', fnum(top5, 1) + ' %')}${cell('POSICIONES', nSt + ' acc. · ' + nCr + ' cripto')}
-      ${cell('CRIPTO', fnum(crW, 1) + ' %')}${cell('COBROS 30 DÍAS', in30 > 0 ? '<span class="yellow">~' + eur(in30, 0) + '</span>' : '—')}
+      ${cell('TOP 5 PESAN', fnum(top5, 1) + ' %')}${cell('POSICIONES', f === 'stock' ? nSt + ' acciones' : f === 'crypto' ? nCr + ' criptos' : nSt + ' acc. · ' + nCr + ' cripto')}
+      ${f === 'all' ? cell('CRIPTO', fnum(crW, 1) + ' %') : ''}${f !== 'crypto' ? cell('COBROS 30 DÍAS', in30 > 0 ? '<span class="yellow">~' + eur(in30, 0) + '</span>' : '—') : ''}
       ${cell('COSTE', eur(cost, 0))}${cell('P/L LATENTE', `<span class="${cls(total - cost)}">${sEur(total - cost, 0)} (${sPct(cost ? (total - cost) / cost : 0)})</span>`)}</div>`;
     return perHtml + concl + glance;
   }
