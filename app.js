@@ -285,10 +285,10 @@
   }
   function inicioBottom(D, f, rows, total) {
     const max = Math.max(1, ...D.per.map(p => Math.abs(p.chg || 0)));
-    const perHtml = `<h2><span>RENDIMIENTO</span></h2><div class="perf">${D.per.map(p => {
+    const perHtml = `<h2><span>RENDIMIENTO</span><span class="tog" id="perfTog">${ui.perfPct ? '%' : '€'}</span></h2><div class="perf">${D.per.map(p => {
       if (p.chg == null) return `<div class="dr"><span>${p.k}</span><div class="t"></div><b class="muted">—</b></div>`;
       const w = Math.min(50, Math.abs(p.chg) / max * 50), up = p.chg >= 0;
-      return `<div class="dr"><span>${p.k}</span><div class="t"><i class="${up ? 'p' : 'n'}" style="width:${w.toFixed(1)}%"></i></div><b class="${up ? 'p' : 'n'}">${sEur(p.chg)}</b></div>`;
+      return `<div class="dr"><span>${p.k}</span><div class="t"><i class="${up ? 'p' : 'n'}" style="width:${w.toFixed(1)}%"></i></div><b class="${up ? 'p' : 'n'}">${ui.perfPct ? sPct(p.pct) : sEur(p.chg)}</b></div>`;
     }).join('')}</div>`;
     const R = settingsRules(), out = [];
     rows.filter(r => r.a.type !== 'crypto' && total && r.value / total * 100 > R.maxPerCompany).sort((x, y) => y.value - x.value).slice(0, 2).forEach(r => {
@@ -298,6 +298,13 @@
     if (D.evs[0]) {
       const d = e => e.pay.slice(8, 10) + '/' + e.pay.slice(5, 7);
       out.push(`El <b>${d(D.evs[0])}</b> cobras ~${eur(D.evs[0].net, 0)} de ${esc(D.evs[0].asset.ticker)}.` + (D.evs[1] ? ` Después, ${esc(D.evs[1].asset.ticker)} el <b>${d(D.evs[1])}</b>.` : ''));
+    }
+    {
+      const t = today(), y = +t.slice(0, 4), cut = (y - 1) + t.slice(4);
+      const paid = S.list('dividend').filter(d => d.status !== 'pending');
+      const cur = paid.filter(d => +String(d.date).slice(0, 4) === y).reduce((s, d) => s + (d.net || 0), 0);
+      const prev = paid.filter(d => String(d.date).slice(0, 4) === String(y - 1) && d.date <= cut).reduce((s, d) => s + (d.net || 0), 0);
+      if (prev > 0 && cur > 0) out.push(`Llevas cobrados <b class="g">${eur(cur, 0)}</b> en ${y}: <b class="${cur >= prev ? 'g' : 'r'}">${sPct((cur - prev) / prev)}</b> frente al mismo periodo de ${y - 1} (${eur(prev, 0)}).`);
     }
     const goal = (S.get('settings') || {}).incomeGoal;
     if (goal > 0 && D.fc) {
@@ -387,6 +394,7 @@
 
     bindSeg();
     app.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { ui.range = b.dataset.r; setPref('range', ui.range); render(); });
+    { const pt = $('#perfTog'); if (pt) pt.onclick = () => { ui.perfPct = !ui.perfPct; render(); }; }
     $('#tog').onclick = () => { ui.pct = !ui.pct; setPref('pct', ui.pct); render(); };
     app.querySelectorAll('.rows [data-id]').forEach(el => {
       el.onclick = e => {
@@ -816,6 +824,7 @@
   function render() {
     if (!S.loggedIn()) { renderLogin(); return; }
     if (S.status() === 'bad_secret') { S.logout(); renderLogin(); return; }
+    document.documentElement.dataset.priv = PRIV ? 'on' : 'off';
     const y = window.scrollY;
     if (ui.tab === 'cartera') renderCartera();
     else if (ui.tab === 'dividendos') window.Screens.dividendos();
