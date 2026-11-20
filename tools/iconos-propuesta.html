@@ -1,0 +1,75 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Iconos propuesta</title>
+<style>
+body{margin:0;background:#0b1012;font:600 14px Inter,Arial,sans-serif;color:#e8f1ef;padding:28px;width:1180px}
+h1{font-size:18px;margin:0 0 18px;letter-spacing:.08em}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.c{display:flex;flex-direction:column;align-items:center;gap:10px}
+.c svg{width:340px;height:340px;border-radius:76px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.c b{font-size:15px;letter-spacing:.06em}.c span{color:#93a8a6;font-weight:500;font-size:12.5px;text-align:center;max-width:330px}
+</style></head><body>
+<h1>CARTERA CARLOS · PROPUESTAS DE ICONO</h1>
+<div class="g" id="g"></div>
+<script>
+// Marco angular abierto, como el del icono de la Zontes: un trazo de acento grueso que se afina y otro oscuro.
+const frame = (acc, dk, w = 1) => `
+  <path d="M28 226 L150 84 L372 80 L348 92 L160 96 L44 232Z" fill="${acc}"/>
+  <path d="M372 80 L478 186 L462 188 L360 94Z" fill="${dk}"/>
+  <path d="M30 250 L26 392 L116 470 L350 438 L116 458 L40 388Z" fill="${dk}"/>
+  <path d="M478 300 L470 420 L420 462 L430 440 L462 410Z" fill="${acc}" opacity=".9"/>`;
+
+const icons = [
+ { n: 'A · EL TORO', d: 'Toro geométrico (mercado alcista) con el marco angular de la Zontes, crema y naranja.',
+   svg: `<rect width="512" height="512" fill="#F1E6D6"/>${frame('#F26A21', '#1E2420')}
+   <polygon points="196,190 316,190 346,300 298,404 256,430 214,404 166,300" fill="#1E2420"/>
+   <polygon points="256,190 316,190 346,300 298,404 256,430" fill="#2b332e"/>
+   <polygon points="196,190 124,176 64,104 150,138 204,160" fill="#F1E6D6" stroke="#1E2420" stroke-width="10" stroke-linejoin="round"/>
+   <polygon points="316,190 388,176 448,104 362,138 308,160" fill="#F1E6D6" stroke="#1E2420" stroke-width="10" stroke-linejoin="round"/>
+   <polygon points="196,214 140,222 150,262 196,250" fill="#1E2420"/><polygon points="316,214 372,222 362,262 316,250" fill="#1E2420"/>
+   <polygon points="196,240 256,262 316,240 330,300 256,330 182,300" fill="#F1E6D6"/>
+   <polygon points="214,300 256,318 298,300 290,380 256,400 222,380" fill="#F26A21"/>
+   <circle cx="232" cy="352" r="8" fill="#1E2420"/><circle cx="280" cy="352" r="8" fill="#1E2420"/>
+   <polygon points="200,262 226,252 226,268" fill="#F26A21"/><polygon points="312,262 286,252 286,268" fill="#F26A21"/>` },
+ { n: 'B · LA MONEDA', d: 'Moneda de euro facetada sobre barras que suben: bolsa + patrimonio. Menta y oro sobre tinta oscura.',
+   svg: `<rect width="512" height="512" fill="#0A1214"/>${frame('#43E8C0', '#93a8a6')}
+   <rect x="96" y="318" width="46" height="96" rx="6" fill="#1c2a2c"/><rect x="156" y="276" width="46" height="138" rx="6" fill="#283a3c"/>
+   <rect x="216" y="232" width="46" height="182" rx="6" fill="#33504d"/>
+   <circle cx="300" cy="258" r="128" fill="#FFD36E"/>
+   <path d="M300 130 A128 128 0 0 1 428 258 L300 258Z" fill="#ffe3a0"/><path d="M300 386 A128 128 0 0 1 172 258 L300 258Z" fill="#e6b84e"/>
+   <circle cx="300" cy="258" r="96" fill="none" stroke="#0A1214" stroke-width="12"/>
+   <text x="300" y="296" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="118" fill="#0A1214">€</text>
+   <path d="M120 200 L190 150 L236 176 L350 90" fill="none" stroke="#43E8C0" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+   <polygon points="350,60 392,96 340,116" fill="#43E8C0" transform="rotate(8 350 90)"/>` },
+ { n: 'C · LA CAJA FUERTE', d: 'Patrimonio a buen recaudo: caja fuerte con dial y gráfica. Azul marino y oro.',
+   svg: `<rect width="512" height="512" fill="#10213A"/>${frame('#E8B84A', '#7c93b5')}
+   <rect x="110" y="140" width="292" height="262" rx="26" fill="#1c3558"/>
+   <rect x="110" y="140" width="292" height="262" rx="26" fill="none" stroke="#E8B84A" stroke-width="12"/>
+   <rect x="138" y="168" width="236" height="206" rx="14" fill="#13294a" stroke="#2c4a77" stroke-width="6"/>
+   <circle cx="256" cy="271" r="68" fill="#E8B84A"/><circle cx="256" cy="271" r="52" fill="#13294a"/>
+   <path d="M256 224 L256 318 M209 271 L303 271 M222 237 L290 305 M290 237 L222 305" stroke="#E8B84A" stroke-width="9" stroke-linecap="round"/>
+   <circle cx="256" cy="271" r="14" fill="#E8B84A"/>
+   <rect x="140" y="400" width="40" height="26" rx="6" fill="#E8B84A"/><rect x="332" y="400" width="40" height="26" rx="6" fill="#E8B84A"/>
+   <path d="M150 204 L190 178 L212 192 L248 160" fill="none" stroke="#43E8C0" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" transform="translate(128 -4) scale(.8)"/>` },
+ { n: 'D · LAS VELAS', d: 'Velas japonesas ascendentes con flecha: la imagen clásica de la bolsa. Crema, verde y naranja.',
+   svg: `<rect width="512" height="512" fill="#EFE7DA"/>${frame('#F26A21', '#1b1f1d')}
+   ${[[110,300,60,'#1b1f1d'],[184,256,70,'#14a37f'],[258,300,40,'#1b1f1d'],[332,200,90,'#14a37f']].map(([x,y,h,c],i)=>`<line x1="${x+22}" y1="${y-36}" x2="${x+22}" y2="${y+h+36}" stroke="#1b1f1d" stroke-width="9" stroke-linecap="round"/><rect x="${x}" y="${y}" width="44" height="${h}" rx="7" fill="${c}"/>`).join('')}
+   <path d="M110 372 L226 300 L286 336 L420 160" fill="none" stroke="#F26A21" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+   <polygon points="440,128 452,196 386,176" fill="#F26A21"/>` },
+ { n: 'E · EL ÁRBOL DE MONEDAS', d: 'Patrimonio que crece: árbol cuyas hojas son monedas. Verde bosque y oro.',
+   svg: `<rect width="512" height="512" fill="#123524"/>${frame('#E9B949', '#7fb69a')}
+   <path d="M236 430 L246 300 L214 250 L238 258 L256 290 L276 250 L300 244 L266 300 L278 430Z" fill="#c9a77a"/>
+   <path d="M240 430 L262 430 L256 330Z" fill="#a98657"/>
+   ${[[256,130,56],[176,190,48],[336,190,48],[116,262,40],[396,262,40],[220,236,40],[292,236,40]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#E9B949"/><circle cx="${x}" cy="${y}" r="${r*0.7}" fill="none" stroke="#b9902f" stroke-width="${r*0.14}"/><path d="M${x-r*.5} ${y+r*.2} L${x} ${y-r*.5} L${x+r*.5} ${y+r*.2}" fill="none" stroke="#b9902f" stroke-width="${r*0.16}" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}
+   <ellipse cx="256" cy="438" rx="110" ry="14" fill="#0b2418"/>` },
+ { n: 'F · LA GEMA', d: 'Diamante facetado: valor y patrimonio, también encaja con cripto. Violeta y cian.',
+   svg: `<rect width="512" height="512" fill="#1B1633"/>${frame('#6EE7F9', '#8f86c7')}
+   <polygon points="150,190 362,190 424,262 256,444 88,262" fill="#6EE7F9"/>
+   <polygon points="150,190 206,190 176,262 88,262" fill="#a6f0fb"/><polygon points="206,190 306,190 336,262 176,262" fill="#c9f6fd"/>
+   <polygon points="306,190 362,190 424,262 336,262" fill="#4fc7da"/>
+   <polygon points="88,262 176,262 256,444" fill="#3fb0c6"/><polygon points="176,262 336,262 256,444" fill="#6EE7F9"/><polygon points="336,262 424,262 256,444" fill="#2f95ab"/>
+   <polygon points="150,190 206,190 256,128 190,128" fill="none"/>
+   <path d="M150 190 L362 190 L424 262 L256 444 L88 262Z" fill="none" stroke="#1B1633" stroke-width="10" stroke-linejoin="round"/>
+   <path d="M176 262 L206 190 M336 262 L306 190 M176 262 L256 444 M336 262 L256 444" stroke="#1B1633" stroke-width="6" stroke-linejoin="round" opacity=".55"/>
+   <path d="M360 150 l10 -28 l10 28 l28 10 l-28 10 l-10 28 l-10 -28 l-28 -10z" fill="#FFD36E"/>` },
+];
+document.getElementById('g').innerHTML = icons.map(i => `<div class="c"><svg viewBox="0 0 512 512">${i.svg}</svg><b>${i.n}</b><span>${i.d}</span></div>`).join('');
+</script></body></html>

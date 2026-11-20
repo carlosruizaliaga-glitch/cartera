@@ -1,0 +1,47 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Iconos propuesta</title>
+<style>
+body{margin:0;background:#0b1012;font:600 14px Inter,Arial,sans-serif;color:#e8f1ef;padding:28px;width:1180px}
+h1{font-size:18px;margin:0 0 18px;letter-spacing:.08em}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.c{display:flex;flex-direction:column;align-items:center;gap:10px}
+.c svg{width:340px;height:340px;border-radius:76px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.c b{font-size:15px;letter-spacing:.06em}.c span{color:#93a8a6;font-weight:500;font-size:12.5px;text-align:center;max-width:330px}
+</style></head><body>
+<h1>CARTERA CARLOS · VELAS · VERSIONES LIMPIAS</h1>
+<div class="g" id="g"></div>
+<script>
+// Marco angular abierto, como el del icono de la Zontes: un trazo de acento grueso que se afina y otro oscuro.
+const frame = (acc, dk, w = 1) => `
+  <path d="M28 226 L150 84 L372 80 L348 92 L160 96 L44 232Z" fill="${acc}"/>
+  <path d="M372 80 L478 186 L462 188 L360 94Z" fill="${dk}"/>
+  <path d="M30 250 L26 392 L116 470 L350 438 L116 458 L40 388Z" fill="${dk}"/>
+  <path d="M478 300 L470 420 L420 462 L430 440 L462 410Z" fill="${acc}" opacity=".9"/>`;
+
+
+// Velas limpias: pocas piezas, mechas gruesas, sin líneas encima.
+const candle = (x, top, h, wt, wb, body, wick, w = 64) => `<line x1="${x+w/2}" y1="${wt}" x2="${x+w/2}" y2="${wb}" stroke="${wick}" stroke-width="14" stroke-linecap="round"/><rect x="${x}" y="${top}" width="${w}" height="${h}" rx="14" fill="${body}"/>`;
+const icons = [
+ { n: 'D1 · LIMPIA CREMA', d: 'Tres velas grandes, sin marco ni flecha. Crema, tinta y verde.',
+   svg: `<rect width="512" height="512" fill="#EFE7DA"/>
+   ${candle(86, 280, 96, 250, 410, '#1b1f1d', '#1b1f1d')}${candle(224, 210, 110, 170, 380, '#1b1f1d', '#1b1f1d')}${candle(362, 120, 150, 80, 330, '#14a37f', '#14a37f')}` },
+ { n: 'D2 · MENTA SOBRE OSCURO', d: 'Cuatro velas escalonadas, la última en oro. Fondo tinta de la app.',
+   svg: `<rect width="512" height="512" fill="#0A1214"/>
+   ${candle(62, 330, 70, 300, 430, '#283a3c', '#3d5658', 56)}${candle(158, 270, 90, 240, 400, '#43E8C0', '#43E8C0', 56)}${candle(254, 210, 90, 170, 350, '#43E8C0', '#43E8C0', 56)}${candle(350, 120, 130, 78, 290, '#FFD36E', '#FFD36E', 56)}` },
+ { n: 'D3 · HEXÁGONO', d: 'Un solo marco hexagonal limpio, tres velas dentro. Crema y naranja.',
+   svg: `<rect width="512" height="512" fill="#F1E6D6"/>
+   <polygon points="256,40 442,148 442,364 256,472 70,364 70,148" fill="#1b1f1d"/>
+   <polygon points="256,64 421,160 421,352 256,448 91,352 91,160" fill="#F1E6D6"/>
+   ${candle(150, 270, 80, 240, 380, '#1b1f1d', '#1b1f1d', 48)}${candle(232, 220, 90, 180, 350, '#1b1f1d', '#1b1f1d', 48)}${candle(314, 150, 120, 110, 300, '#F26A21', '#F26A21', 48)}` },
+ { n: 'D4 · MENTA TOTAL', d: 'Fondo menta como el icono actual, velas oscuras y punto dorado arriba.',
+   svg: `<rect width="512" height="512" fill="#43E8C0"/>
+   ${candle(80, 300, 80, 270, 410, '#0A1214', '#0A1214', 56)}${candle(228, 230, 100, 190, 380, '#0A1214', '#0A1214', 56)}${candle(376, 150, 130, 112, 330, '#0A1214', '#0A1214', 56)}
+   <circle cx="404" cy="78" r="34" fill="#FFD36E" stroke="#0A1214" stroke-width="12"/>` },
+ { n: 'D5 · AZUL Y ORO', d: 'Velas redondeadas en dos tonos de oro sobre azul marino, muy sobrio.',
+   svg: `<rect width="512" height="512" fill="#10213A"/>
+   ${candle(84, 290, 90, 260, 410, '#7c93b5', '#7c93b5', 70)}${candle(224, 210, 110, 170, 390, '#E8B84A', '#E8B84A', 70)}${candle(364, 110, 160, 70, 330, '#E8B84A', '#E8B84A', 70)}` },
+ { n: 'D6 · VERDE Y ROJO', d: 'Una vela roja que cae y dos verdes que suben: lectura inmediata de bolsa.',
+   svg: `<rect width="512" height="512" fill="#0F1A1C"/>
+   ${candle(80, 190, 110, 140, 340, '#ff6b6b', '#ff6b6b', 64)}${candle(224, 250, 100, 210, 390, '#43E8C0', '#43E8C0', 64)}${candle(368, 130, 160, 80, 330, '#43E8C0', '#43E8C0', 64)}` },
+];
+document.getElementById('g').innerHTML = icons.map(i => `<div class="c"><svg viewBox="0 0 512 512">${i.svg}</svg><b>${i.n}</b><span>${i.d}</span></div>`).join('');
+</script></body></html>
