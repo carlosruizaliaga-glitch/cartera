@@ -163,13 +163,13 @@
       <header class="top">
         <div class="brand"><b>&gt;</b> CARTERA CARLOS</div><div class="sp"></div>
         <button class="iconbtn${PRIV ? ' on' : ''}" id="privBtn" aria-label="${PRIV ? 'Mostrar importes' : 'Ocultar importes'}" aria-pressed="${PRIV}">${eyeIcon(PRIV)}</button>
-        <button class="iconbtn" id="syncBtn">${syncDot()}</button>
+        <button class="iconbtn" id="syncBtn"${S.status() === "ok" && !S.pending() ? " hidden" : ""}>${syncDot()}</button>
         <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>
       </header>
       <div id="ptr"></div>
       <main id="main">${updateBanner()}${inner}</main>
       <nav class="tabs">${tabs.map((t, i) => (i === 2 ? '<button class="fab" id="fab" aria-label="Añadir">+</button>' : '') +
-        `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${t[1]}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
+        `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${navIcon(t[0])}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
     app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => navigate({ tab: b.dataset.tab }));
     $('#privBtn').onclick = () => setPriv(!PRIV);
     $('#syncBtn').onclick = () => { S.syncNow(); refreshMarket(true); };
@@ -232,6 +232,62 @@
     app.querySelectorAll('.rows [data-id]').forEach(el => el.onclick = () => openAsset(el.dataset.id));
   }
 
+
+  // ---------- Inicio: KPIs, rendimiento por periodos y conclusiones ----------
+  const NAVIC = {
+    cartera: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+    dividendos: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9c-.6-.8-1.5-1.2-2.5-1.2-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-1.9-.4-2.5-1.2M12 6v1.8M12 16.2V18"/>',
+    calendario: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+    analisis: '<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>'
+  };
+  const navIcon = k => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAVIC[k]}</svg>`;
+  const settingsRules = () => Object.assign({ maxPerCompany: 7, maxHighYield: 5, maxCrypto: 5 }, (S.get('settings') || {}).rules || {});
+
+  function inicioData(mdl, rows, f, total, day, cost) {
+    const t = today(), year = t.slice(0, 4);
+    const stocks = rows.filter(r => r.a.type !== 'crypto');
+    const Dv = window.Divs || { forecast: () => null, upcoming: () => [] };   // dividends.js carga después del primer pintado
+    const fc = f === 'crypto' ? null : Dv.forecast(stocks);
+    const realized = Object.values(mdl.pos).reduce((s, p) => s + ((p.realized && p.realized[year]) || 0), 0);
+    const cobrado = S.list('dividend').filter(d => d.status !== 'pending' && String(d.date).slice(0, 4) === year).reduce((s, d) => s + (d.net || 0), 0);
+    const evs = f === 'crypto' ? [] : Dv.upcoming(stocks.map(r => r.a), { back: 0 }).filter(e => e.pay >= t && e.qty > 0);
+    const all = seriesFor(mdl, f).slice();
+    if (all.length) all[all.length - 1] = Object.assign({}, all[all.length - 1], { v: total });
+    const per = [['HOY', null], ['7D', C.addDays(t, -7)], ['1M', C.addDays(t, -30)], ['YTD', rangeStart('YTD', t)], ['1A', C.addDays(t, -365)], ['TODO', null]].map(([k, from]) => {
+      if (k === 'HOY') return { k, chg: day, pct: total - day ? day / (total - day) : 0 };
+      const pts = from ? all.filter(p => p.d >= from) : all;
+      const r = rangeStats(pts, pts.length - 1);
+      return { k, chg: pts.length > 1 ? r.chg : null, pct: r.pct };
+    });
+    return { fc, realized, cobrado, evs, per, year };
+  }
+  function inicioHero(D, f) {
+    const kpi = (k, v, c) => `<div><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`;
+    const nx = D.evs[0];
+    const lines = `<div class="isub">${D.cobrado || nx ? `COBRADO ${D.year} <b class="yellow">${eur(D.cobrado)}</b>${nx ? ` · PRÓXIMO ${esc(nx.asset.ticker)} ${nx.pay.slice(8, 10)}/${nx.pay.slice(5, 7)} <b class="yellow">~${eur(nx.net)}</b>` : ''}` : ''}</div>`;
+    const strip = D.fc ? `<div class="kpis">${kpi('RENTA/AÑO', eur(D.fc.net), 'yellow')}${kpi('YIELD', fnum(D.fc.yld * 100, 1) + ' %')}${kpi('YoC', fnum(D.fc.yoc * 100, 1) + ' %')}${kpi('PLUSVAL. ' + D.year.slice(2), sEur(D.realized), cls(D.realized))}</div>` : '';
+    return lines + strip;
+  }
+  function inicioBottom(D, f, rows, total) {
+    const max = Math.max(1, ...D.per.map(p => Math.abs(p.chg || 0)));
+    const perHtml = `<h2><span>RENDIMIENTO</span></h2><div class="perf">${D.per.map(p => {
+      if (p.chg == null) return `<div class="dr"><span>${p.k}</span><div class="t"></div><b class="muted">—</b></div>`;
+      const w = Math.min(50, Math.abs(p.chg) / max * 50), up = p.chg >= 0;
+      return `<div class="dr"><span>${p.k}</span><div class="t"><i class="${up ? 'p' : 'n'}" style="width:${w.toFixed(1)}%"></i></div><b class="${up ? 'p' : 'n'}">${sEur(p.chg)}</b></div>`;
+    }).join('')}</div>`;
+    const R = settingsRules(), out = [];
+    rows.filter(r => r.a.type !== 'crypto' && total && r.value / total * 100 > R.maxPerCompany).sort((x, y) => y.value - x.value).slice(0, 2).forEach(r => {
+      out.push(`<b class="r">${esc(r.a.ticker)} pesa un ${fnum(r.value / total * 100, 1)} %</b> y tu límite es del ${fnum(R.maxPerCompany, 0)} %: para cumplirlo habría que vender ~${eur(r.value - total * R.maxPerCompany / 100, 0)}.`);
+    });
+    if (D.fc && D.fc.net > 0) out.push(`Tu renta prevista es <b class="g">${eur(D.fc.net, 0)} netos al año</b> (${eur(D.fc.monthly, 0)}/mes).`);
+    if (D.evs[0]) {
+      const d = e => e.pay.slice(8, 10) + '/' + e.pay.slice(5, 7);
+      out.push(`El <b>${d(D.evs[0])}</b> cobras ~${eur(D.evs[0].net, 0)} de ${esc(D.evs[0].asset.ticker)}.` + (D.evs[1] ? ` Después, ${esc(D.evs[1].asset.ticker)} el <b>${d(D.evs[1])}</b>.` : ''));
+    }
+    const concl = out.length ? `<h2><span>CONCLUSIONES</span></h2><div class="ins">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';
+    return perHtml + concl;
+  }
+
   function renderCartera() {
     if (ui.filter === 'watch') return renderWatch();
     const mdl = model();
@@ -258,6 +314,7 @@
     const err = M.error();
     const asof = lastQ ? `PRECIOS ${madrid(lastQ)}${err ? ' · <span class="down">' + esc(err.toUpperCase()) + ' · ÚLTIMO GUARDADO</span>' : ''}` : (M.busy() ? 'CARGANDO PRECIOS…' : 'SIN PRECIOS TODAVÍA');
     const scrub = ui.scrub;
+    const D = inicioData(mdl, rows, f, total, day, cost);
 
     shell(`
       ${segHtml(f)}
@@ -267,6 +324,7 @@
         <div class="chg" id="hChg">${scrub ? scrub.chg : `<span class="${cls(day)}">${sEur(day)} (${sPct(dayPct)})</span> <span class="muted">HOY</span>`}</div>
         ${ui.range !== '1D' ? `<div class="chg"><span class="${cls(rchg)}">${sEur(rchg)} (${sPct(rpct)})</span> <span class="muted">${ui.range}</span></div>` : ''}
         <div class="asof">${asof}</div>
+        ${inicioHero(D, f)}
       </section>
       <div class="chart" id="chart">${chartSvg(pts, rchg)}</div>
       <div class="ranges">${RANGES.map(r => `<button data-r="${r[0]}" class="${ui.range === r[0] ? 'on' : ''}">${r[1]}</button>`).join('')}</div>
@@ -275,7 +333,8 @@
       <div class="kv" style="margin:16px 0 4px">
         <div class="k">COSTE</div><div class="v">${eur(cost)}</div>
         <div class="k">P/L LATENTE</div><div class="v ${cls(total - cost)}">${sEur(total - cost)} (${sPct(cost ? (total - cost) / cost : 0)})</div>
-      </div>`);
+      </div>
+      ${inicioBottom(D, f, rows, total)}`);
 
     bindSeg();
     app.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { ui.range = b.dataset.r; setPref('range', ui.range); render(); });
@@ -753,6 +812,7 @@
 
   window.UI = { navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
+  document.addEventListener('DOMContentLoaded', () => { if (!window.Divs || S.loggedIn()) render(); });
   autoLockCheck();
   // Accesos directos del icono (mantener pulsado): ?accion=operacion | dividendos | calendario
   const acc = new URLSearchParams(location.search).get('accion');

@@ -62,6 +62,8 @@ try {
     const t = await textoPantalla(), o = await overflow();
     check(`Pantalla ${tab.toUpperCase()} se ve y cabe en 360 px`, t.includes(texto) && o.sw <= o.w && o.n === 0, o.n ? JSON.stringify(o.ej) : '');
   }
+  await clic('[data-tab=cartera]'); { const t = await textoPantalla(); check('Inicio con KPIs, rendimiento y conclusiones', ['RENTA/AÑO', 'YIELD', 'RENDIMIENTO', 'CONCLUSIONES'].every(x => t.includes(x))); }
+  await clic('[data-tab=analisis]');
   await clic('[data-av=rules]'); check('Análisis → REGLAS', (await textoPantalla()).includes('PESO POR EMPRESA'));
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
