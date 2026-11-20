@@ -156,14 +156,15 @@
     const pct = v => UI.fnum(v, v % 1 ? 3 : 0).replace(/(,\d*?)0+$/, '$1').replace(/,$/, '');
     const rule = (key, label, v) => `<label><span>${label}</span><input data-r="${key}" inputmode="decimal" value="${pct(v)}"><em>%</em></label>`;
     const status = S.status() === 'ok' ? '<span class="up">AL DÍA</span>' : S.status() === 'offline' ? '<span class="yellow">SIN CONEXIÓN</span>' : UI.esc(S.status().toUpperCase());
-    UI.shell(`
-      <h2><span>LA APP</span><span class="${UI.hasUpdate() ? 'cyan' : 'muted'}">${UI.hasUpdate() ? 'HAY VERSIÓN NUEVA' : 'AL DÍA'}</span></h2>
+    const blocks = {
+      app: `      <h2><span>LA APP</span><span class="${UI.hasUpdate() ? 'cyan' : 'muted'}">${UI.hasUpdate() ? 'HAY VERSIÓN NUEVA' : 'AL DÍA'}</span></h2>
       <div class="kv" style="margin-top:10px">
         <div class="k">INSTALADA</div><div class="v">${UI.esc(window.APP_VERSION || '—')}</div>
         <div class="k">ÚLTIMA</div><div class="v ${UI.hasUpdate() ? 'cyan' : ''}">${UI.upd.error ? '<span class="yellow">SIN CONEXIÓN</span>' : UI.upd.latest ? UI.esc(UI.upd.latest) : '—'}</div>
       </div>
       <div class="bk" style="margin-top:10px"><button id="updBtn" class="${UI.hasUpdate() ? 'primary' : ''}">${UI.hasUpdate() ? '⬇ ACTUALIZAR LA APP AHORA' : '↻ BUSCAR ACTUALIZACIÓN'}</button></div>
-
+`,
+      copia: `
       <h2><span>COPIA DE SEGURIDAD</span><span class="${old ? 'yellow' : 'muted'}">${lb ? 'ÚLTIMA ' + UI.fdate(new Date(lb).toLocaleDateString('sv-SE')) : 'NUNCA'}</span></h2>
       ${old ? '<div class="warn">Haz una copia de vez en cuando (por ejemplo, una al mes) y guárdala en Drive o mándatela por email.</div>' : ''}
       <div class="bk">
@@ -172,34 +173,40 @@
         <div class="bk2"><button id="xJson">COPIA PARA RESTAURAR</button><button id="xImp">RESTAURAR COPIA</button></div>
         <input type="file" id="impFile" accept=".json,application/json" hidden>
       </div>
-
+`,
+      brokers: `
       <h2><span>BROKERS</span><span class="tog" id="addB">+ AÑADIR</span></h2>
       <div class="rows">${brokers.map(b => `<div class="row" data-b="${UI.esc(b.id)}"><div class="mid"><div class="tk">${UI.esc(b.name)}</div>
         <div class="nm">${b.feePct ? pct(b.feePct) + '% del importe' : 'última comisión usada · por defecto ' + UI.eur(b.feeFixed || 0)}</div></div>
         <div class="rt muted">EDITAR ›</div></div>`).join('')}</div>
-
+`,
+      ret: `
       <h2><span>RETENCIÓN EN ORIGEN</span><span class="tog" id="addC">+ PAÍS</span></h2>
       <div class="whg">${Object.keys(W).sort().map(c => `<label><span>${UI.esc(c)}</span><input data-w="${UI.esc(c)}" inputmode="decimal" value="${pct(W[c])}"><em>%</em></label>`).join('')}</div>
       <div class="whg one"><label><span>TOPE DEDUCIBLE EN ESPAÑA</span><input id="dmax" inputmode="decimal" value="${pct(st.deductibleMax != null ? st.deductibleMax : 15)}"><em>%</em></label></div>
-
+`,
+      reglas: `
       <h2><span>REGLAS DE LA CARTERA</span></h2>
       <div class="whg one">
         ${rule('maxPerCompany', 'MÁX. POR EMPRESA', R.maxPerCompany)}
         ${rule('maxHighYield', 'MÁX. mREIT / ALTO RENDIMIENTO', R.maxHighYield)}
         ${rule('maxCrypto', 'MÁX. CRIPTO', R.maxCrypto)}
       </div>
-
+`,
+      avisos: `
       ${window.AndroidBridge ? `<h2><span>AVISOS Y WIDGET</span><span class="${window.AndroidBridge.notificationsEnabled() ? 'up' : 'muted'}">${window.AndroidBridge.notificationsEnabled() ? 'AVISOS ACTIVOS' : 'AVISOS DESACTIVADOS'}</span></h2>
       <div class="bk" style="margin-top:10px">${window.AndroidBridge.notificationsEnabled() ? '' : '<button id="ntfBtn" class="primary">🔔 ACTIVAR AVISOS DE DIVIDENDOS</button>'}</div>
       <div class="muted" style="font-size:11px;margin-top:6px">Te aviso el día antes y el mismo día de cada pago, ex-dividendo y resultados de tus empresas. <b>Widget:</b> mantén pulsada la pantalla de inicio → Widgets → Cartera Carlos.</div>
-      ` : ''}
+      ` : ''}`,
+      seg: `
       <h2><span>SEGURIDAD</span><span class="${UI.pin.get() ? 'up' : 'muted'}">${UI.pin.get() ? 'PIN ACTIVO' : 'SIN PIN'}</span></h2>
       <div class="bk" style="margin-top:10px">${UI.pin.get()
         ? `<div class="bk2"><button id="pinChg">CAMBIAR PIN</button><button id="pinDel" class="out">QUITAR PIN</button></div>
            <button id="bioBtn">${UI.bio.get() ? '✓ HUELLA ACTIVA · QUITAR' : '👆 ACTIVAR HUELLA / FACE ID'}</button>`
         : '<button id="pinSet">🔒 PONER PIN PARA ABRIR LA APP</button>'}</div>
       <div class="muted" style="font-size:11px;margin-top:6px">Pide el PIN al abrir la app y tras 2 minutos fuera de ella. Solo protege este móvil: tus datos siguen en la nube.</div>
-
+`,
+      sync: `
       <h2><span>SINCRONIZACIÓN</span></h2>
       <div class="kv" style="margin-top:10px">
         <div class="k">ESTADO</div><div class="v">${status}${S.pending() ? ' · ' + S.pending() + ' POR SUBIR' : ''}</div>
@@ -209,17 +216,47 @@
         <div class="k">DIVIDENDOS</div><div class="v">${n.d}</div>
         <div class="k">PRECIOS</div><div class="v">${M.lastQuotes() ? dt(M.lastQuotes()) : '—'}</div>
         <div class="k">TIPOS BCE</div><div class="v">${M.fxDate() ? UI.fdate(M.fxDate()) : '—'}</div>
-      </div>
-      <button class="block out" id="logout">CERRAR SESIÓN EN ESTE MÓVIL</button>
-      <div class="foot">Cartera Carlos · datos en la nube (Supabase) · precios Yahoo Finance y CoinGecko · divisas BCE</div>`);
-
-    $('#updBtn').onclick = async () => {
+      </div>`
+    };
+    const IC = {
+      brokers: '<path d="M3 10l9-6 9 6M5 10v8M19 10v8M9 10v8M15 10v8M3 20h18"/>',
+      ret: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+      reglas: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+      copia: '<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>',
+      sync: '<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3M18 3v4h-4M6 21v-4h4"/>',
+      avisos: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/>',
+      seg: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+      app: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
+    };
+    const item = (k, title, summary) => `<div class="sitem" data-sub="${k}"><span class="sic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg></span><span class="stx"><b>${title}</b><em>${summary}</em></span><span class="sch">›</span></div>`;
+    const grp = t => `<h2><span>${t}</span></h2>`;
+    const menu = grp('CARTERA')
+      + item('brokers', 'Brokers y comisiones', brokers.length + ' brokers')
+      + item('ret', 'Retención por país', Object.keys(W).length + ' países · tope ' + pct(st.deductibleMax != null ? st.deductibleMax : 15) + ' %')
+      + item('reglas', 'Reglas de la cartera', 'máx. ' + pct(R.maxPerCompany) + ' % por empresa')
+      + grp('DATOS')
+      + item('copia', 'Copia de seguridad', lb ? 'última ' + UI.fdate(new Date(lb).toLocaleDateString('sv-SE')) : 'nunca hecha')
+      + item('sync', 'Sincronización', S.status() === 'ok' ? 'al día' : S.status() === 'offline' ? 'sin conexión' : S.status())
+      + grp('SISTEMA')
+      + item('seg', 'Seguridad', UI.pin.get() ? 'PIN activo' + (UI.bio.get() ? ' · huella' : '') : 'sin PIN')
+      + (window.AndroidBridge ? item('avisos', 'Avisos y widget', window.AndroidBridge.notificationsEnabled() ? 'avisos activos' : 'avisos desactivados') : '')
+      + item('app', 'La app', (window.APP_VERSION || '—') + (UI.hasUpdate() ? ' · hay versión nueva' : ''))
+      + '<div class="foot">Cartera Carlos · datos en la nube (Supabase) · precios Yahoo Finance y CoinGecko · divisas BCE</div>';
+    const SUBT = { brokers: 'BROKERS', ret: 'RETENCIÓN', reglas: 'REGLAS', copia: 'COPIA', sync: 'SYNC', seg: 'SEGURIDAD', avisos: 'AVISOS', app: 'LA APP' };
+    const sub = UI.ui.sub && blocks[UI.ui.sub] ? UI.ui.sub : null;
+    UI.shell(sub
+      ? `<div class="subhd"><button id="subBack">‹ AJUSTES</button></div>` + blocks[sub] + (sub === 'sync' ? `<button class="block out" id="logout">CERRAR SESIÓN EN ESTE MÓVIL</button>` : '')
+      : menu);
+    const Q = sel => $(sel) || {};
+    document.querySelectorAll('[data-sub]').forEach(el => el.onclick = () => UI.navigate({ sub: el.dataset.sub }));
+    Q('#subBack').onclick = () => UI.goBack();
+    Q('#updBtn').onclick = async () => {
       if (UI.hasUpdate()) return UI.applyUpdate();
-      $('#updBtn').textContent = 'BUSCANDO…';
+      (Q('#updBtn')).textContent = 'BUSCANDO…';
       await UI.checkUpdate(true);
       if (UI.hasUpdate()) { UI.render(); UI.toast('HAY UNA VERSIÓN NUEVA'); }
-      else if (UI.upd.error) { UI.toast('No se pudo comprobar: sin conexión'); $('#updBtn').textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
-      else { UI.toast('YA TIENES LA ÚLTIMA VERSIÓN'); $('#updBtn').textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
+      else if (UI.upd.error) { UI.toast('No se pudo comprobar: sin conexión'); (Q('#updBtn')).textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
+      else { UI.toast('YA TIENES LA ÚLTIMA VERSIÓN'); (Q('#updBtn')).textContent = '↻ BUSCAR ACTUALIZACIÓN'; }
     };
     // ---------- PIN ----------
     const askPin = (title, hint) => new Promise(resolve => {
@@ -240,13 +277,13 @@
       if (a !== b) return UI.toast('LOS PIN NO COINCIDEN');
       UI.pin.save(await UI.pin.make(a)); UI.toast('PIN ACTIVADO'); UI.render();
     };
-    const pinSet = $('#pinSet'); if (pinSet) pinSet.onclick = setPin;
-    const pinChg = $('#pinChg'); if (pinChg) pinChg.onclick = async () => {
+    const pinSet = Q('#pinSet'); if (pinSet) pinSet.onclick = setPin;
+    const pinChg = Q('#pinChg'); if (pinChg) pinChg.onclick = async () => {
       const cur = await askPin('PIN ACTUAL', 'PIN ACTUAL'); if (!cur) return;
       if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
       await setPin();
     };
-    const bioBtn = $('#bioBtn'); if (bioBtn) bioBtn.onclick = async () => {
+    const bioBtn = Q('#bioBtn'); if (bioBtn) bioBtn.onclick = async () => {
       if (UI.bio.get()) { UI.bio.save(null); UI.toast('HUELLA QUITADA'); return UI.render(); }
       if (!(await UI.bio.available())) return UI.toast('Este móvil no ofrece huella para el navegador');
       const cur = await askPin('CONFIRMA CON TU PIN', 'PIN ACTUAL'); if (!cur) return;
@@ -254,32 +291,32 @@
       try { UI.bio.save({ id: await UI.bio.enroll() }); UI.toast('HUELLA ACTIVADA'); UI.render(); }
       catch (e) { UI.toast('No se pudo activar la huella'); }
     };
-    const pinDel = $('#pinDel'); if (pinDel) pinDel.onclick = async () => {
+    const pinDel = Q('#pinDel'); if (pinDel) pinDel.onclick = async () => {
       const cur = await askPin('QUITAR PIN', 'PIN ACTUAL'); if (!cur) return;
       if (!(await UI.pin.check(cur, UI.pin.get()))) return UI.toast('PIN INCORRECTO');
       UI.pin.save(null); UI.toast('PIN QUITADO'); UI.render();
     };
-    const ntfBtn = $('#ntfBtn'); if (ntfBtn) ntfBtn.onclick = () => window.AndroidBridge.requestNotifications();
-    $('#xExcel').onclick = exportExcel;
-    $('#xOps').onclick = () => exportCsv('operaciones');
-    $('#xDivs').onclick = () => exportCsv('dividendos');
-    $('#xJson').onclick = exportJson;
-    $('#xImp').onclick = () => $('#impFile').click();
-    $('#impFile').onchange = e => importJson(e.target.files[0]);
-    $('#addB').onclick = () => openBroker(null);
+    const ntfBtn = Q('#ntfBtn'); if (ntfBtn) ntfBtn.onclick = () => window.AndroidBridge.requestNotifications();
+    Q('#xExcel').onclick = exportExcel;
+    Q('#xOps').onclick = () => exportCsv('operaciones');
+    Q('#xDivs').onclick = () => exportCsv('dividendos');
+    Q('#xJson').onclick = exportJson;
+    Q('#xImp').onclick = () => Q('#impFile').click();
+    Q('#impFile').onchange = e => importJson(e.target.files[0]);
+    Q('#addB').onclick = () => openBroker(null);
     document.querySelectorAll('[data-b]').forEach(el => el.onclick = () => openBroker(S.get(el.dataset.b)));
     document.querySelectorAll('[data-w]').forEach(inp => inp.onchange = () => {
       const v = pnum(inp.value);
       if (!(v >= 0 && v <= 100)) return UI.toast('Porcentaje entre 0 y 100');
       saveSettings({ withholding: Object.assign({}, W, { [inp.dataset.w]: v }) }); UI.toast('RETENCIÓN GUARDADA');
     });
-    $('#dmax').onchange = e => { const v = pnum(e.target.value); if (v >= 0 && v <= 100) { saveSettings({ deductibleMax: v }); UI.toast('GUARDADO'); } };
+    Q('#dmax').onchange = e => { const v = pnum(e.target.value); if (v >= 0 && v <= 100) { saveSettings({ deductibleMax: v }); UI.toast('GUARDADO'); } };
     document.querySelectorAll('[data-r]').forEach(inp => inp.onchange = () => {
       const v = pnum(inp.value);
       if (!(v > 0 && v <= 100)) return UI.toast('Porcentaje entre 0 y 100');
       saveSettings({ rules: Object.assign({}, R, { [inp.dataset.r]: v }) }); UI.toast('REGLA GUARDADA');
     });
-    $('#addC').onclick = () => {
+    Q('#addC').onclick = () => {
       const bg = UI.sheet(`<div class="hd"><div class="t">+ PAÍS</div><button data-close>✕</button></div>
         <form class="f" onsubmit="return false"><div class="grid2">
           <div class="fld"><label>PAÍS</label><input id="cn" placeholder="P. EJ. Noruega"></div>
@@ -292,7 +329,7 @@
         saveSettings({ withholding: Object.assign({}, W, { [c]: v }) }); bg.remove(); UI.render();
       };
     };
-    $('#logout').onclick = () => { if (S.pending()) { UI.toast('Hay cambios sin subir: conéctate primero'); return; } UI.pin.save(null); S.logout(); UI.render(); };
+    Q('#logout').onclick = () => { if (S.pending()) { UI.toast('Hay cambios sin subir: conéctate primero'); return; } UI.pin.save(null); S.logout(); UI.render(); };
   }
 
   window.SettingsScreen = { render, exportExcel, tables };

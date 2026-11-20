@@ -1,6 +1,6 @@
 // Pruebas de cifras: comprueba que el cálculo (FIFO, plusvalías, coste, dividendos) sigue cuadrando
 // con los números de control de la hoja "Cartera v3". Se ejecuta antes de cada publicación.
-//   node tools/test-cifras.js
+//   node tools/test-cifras.cjs
 // Usa seed.json (copia local de la migración; no se publica). Si no existe, se omite.
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');

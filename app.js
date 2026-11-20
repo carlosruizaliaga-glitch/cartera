@@ -173,7 +173,7 @@
     app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => navigate({ tab: b.dataset.tab }));
     $('#privBtn').onclick = () => setPriv(!PRIV);
     $('#syncBtn').onclick = () => { S.syncNow(); refreshMarket(true); };
-    $('#setBtn').onclick = () => navigate({ tab: 'ajustes' });
+    $('#setBtn').onclick = () => navigate({ tab: 'ajustes', sub: null });
     $('#fab').onclick = openAdd;
   }
 
@@ -481,9 +481,9 @@
   // anterior o, si no hay, a CARTERA. Nunca cierra la app (siempre dejamos una entrada "trampa" en el historial).
   const navStack = [];
   function navigate(patch) {
-    const before = { tab: ui.tab, filter: ui.filter };
+    const before = { tab: ui.tab, filter: ui.filter, sub: ui.sub };
     Object.assign(ui, patch); ui.scrub = null;
-    const changed = before.tab !== ui.tab || (before.filter !== ui.filter && (before.filter === 'watch' || ui.filter === 'watch'));
+    const changed = before.tab !== ui.tab || before.sub !== ui.sub || (before.filter !== ui.filter && (before.filter === 'watch' || ui.filter === 'watch'));
     if (changed) { pushEntry(); navStack.push(before); if (navStack.length > 40) navStack.shift(); }
     if (patch.filter) setPref('filter', ui.filter);
     render();
@@ -494,7 +494,7 @@
     if (sheets.length) { sheets[sheets.length - 1].remove(); render(); return; }
     if (!S.loggedIn()) return;
     if (navStack.length) { Object.assign(ui, navStack.pop()); ui.scrub = null; setPref('filter', ui.filter); render(); window.scrollTo(0, 0); return; }
-    if (ui.tab !== 'cartera') { ui.tab = 'cartera'; render(); window.scrollTo(0, 0); }
+    if (ui.tab !== 'cartera') { ui.tab = 'cartera'; ui.sub = null; render(); window.scrollTo(0, 0); }
   }
   // Cómo se "engancha" el gesto atrás:
   // - Android/Chrome moderno: CloseWatcher (la API pensada para el botón/gesto atrás). No usa el historial,
@@ -751,7 +751,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   autoLockCheck();
   // Accesos directos del icono (mantener pulsado): ?accion=operacion | dividendos | calendario

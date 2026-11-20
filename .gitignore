@@ -2,3 +2,5 @@ seed.json
 test.html
 test-quotes.json
 test-market.json
+tools/node_modules/
+tools/package-lock.json
