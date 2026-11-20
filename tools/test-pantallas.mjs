@@ -67,10 +67,10 @@ try {
   await clic('[data-av=rules]'); check('Análisis → REGLAS', (await textoPantalla()).includes('PESO POR EMPRESA'));
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
-  for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'seg', 'app']) {
+  for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'telegram', 'seg', 'app']) {
     if (sub) { await clic(`[data-sub=${sub}]`); }
     const t = await textoPantalla(), o = await overflow();
-    const esperado = { null: 'SISTEMA', brokers: 'BROKERS', ret: 'RETENCIÓN EN ORIGEN', reglas: 'REGLAS DE LA CARTERA', copia: 'COPIA DE SEGURIDAD', sync: 'SINCRONIZACIÓN', apariencia: 'TAMAÑO DE LETRA', seg: 'SEGURIDAD', app: 'LA APP' }[sub];
+    const esperado = { null: 'SISTEMA', brokers: 'BROKERS', ret: 'RETENCIÓN EN ORIGEN', reglas: 'REGLAS DE LA CARTERA', copia: 'COPIA DE SEGURIDAD', sync: 'SINCRONIZACIÓN', apariencia: 'TAMAÑO DE LETRA', telegram: 'RESUMEN POR TELEGRAM', seg: 'SEGURIDAD', app: 'LA APP' }[sub];
     check(`Ajustes ${sub || 'menú'} se ve y cabe en 360 px`, t.includes(esperado) && o.sw <= o.w && o.n === 0, o.n ? JSON.stringify(o.ej) : '');
     if (sub) await clic('#subBack');
   }

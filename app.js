@@ -308,6 +308,35 @@
     return perHtml + concl;
   }
 
+  // ---------- Resumen para Telegram (se manda por la función ct-notify) ----------
+  function buildDigest() {
+    const was = PRIV; PRIV = false;   // el resumen va a tu propio Telegram: con importes
+    try {
+      const mdl = model(), rows = mdl.rows;
+      if (!rows.length) return '';
+      const total = rows.reduce((s, r) => s + (r.value || 0), 0), day = rows.reduce((s, r) => s + (r.day || 0), 0);
+      const cost = rows.reduce((s, r) => s + r.p.costEur, 0);
+      const D = inicioData(mdl, rows, 'all', total, day, cost);
+      const dd = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+      const L = [`<b>Cartera Carlos</b> · ${dd(today())}`, `Patrimonio <b>${eur(total)}</b>`,
+        `Hoy ${sEur(day)} (${sPct(total - day ? day / (total - day) : 0)})`, `P/L latente ${sEur(total - cost)} (${sPct(cost ? (total - cost) / cost : 0)})`];
+      D.per.filter(p => ['7D', '1M', 'YTD'].includes(p.k) && p.chg != null).forEach(p => L.push(`${p.k} ${sEur(p.chg)}`));
+      if (D.fc) L.push('', `Renta prevista <b>${eur(D.fc.net, 0)}/año</b> (${eur(D.fc.monthly, 0)}/mes) · yield ${fnum(D.fc.yld * 100, 1)} %`);
+      if (D.cobrado) L.push(`Cobrado ${D.year}: ${eur(D.cobrado)}`);
+      if (D.evs.length) { L.push('', '<b>Próximos cobros</b>'); D.evs.slice(0, 4).forEach(e => L.push(`${dd(e.pay)} ${e.asset.ticker} ~${eur(e.net, 0)}`)); }
+      const R = settingsRules();
+      const big = rows.filter(r => r.a.type !== 'crypto' && total && r.value / total * 100 > R.maxPerCompany).slice(0, 3);
+      if (big.length) { L.push('', '<b>Por encima del límite</b>'); big.forEach(r => L.push(`${r.a.ticker} ${fnum(r.value / total * 100, 1)} % (máx. ${fnum(R.maxPerCompany, 0)} %)`)); }
+      return L.join('\n');
+    } finally { PRIV = was; }
+  }
+  async function sendDigest() {
+    const text = buildDigest();
+    if (!text) return { error: 'empty' };
+    const res = await fetch(S.BASE + '/functions/v1/ct-notify', { method: 'POST', headers: { apikey: S.KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: S.secret(), text }) });
+    return await res.json().catch(() => ({ error: 'HTTP ' + res.status }));
+  }
+
   function renderCartera() {
     if (ui.filter === 'watch') return renderWatch();
     const mdl = model();
@@ -830,7 +859,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { buildDigest, sendDigest, theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   document.addEventListener('DOMContentLoaded', () => { if (!window.Divs || S.loggedIn()) render(); });
   autoLockCheck();

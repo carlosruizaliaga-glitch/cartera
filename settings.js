@@ -162,6 +162,9 @@
         <div class="muted" style="font-size:11px;margin:6px 0 4px">Automático sigue el modo claro/oscuro de tu móvil.</div>
         <h2><span>TAMAÑO DE LETRA</span></h2>
         <div class="seg">${[['normal', 'NORMAL'], ['big', 'GRANDE']].map(o => `<button data-fs="${o[0]}" class="${UI.theme.fs() === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`,
+      telegram: `<h2><span>RESUMEN POR TELEGRAM</span></h2>
+        <div class="muted" style="font-size:12px;margin:8px 0">Te manda a tu Telegram un resumen con el patrimonio, lo de hoy, la renta prevista, los próximos cobros y los límites que superas. Lo calcula la app con los precios que tiene ahora, así que ábrela y deja que carguen antes de enviarlo.</div>
+        <div class="bk"><button id="tgBtn" class="primary">✈ ENVIAR RESUMEN AHORA</button></div>`,
       app: `      <h2><span>LA APP</span><span class="${UI.hasUpdate() ? 'cyan' : 'muted'}">${UI.hasUpdate() ? 'HAY VERSIÓN NUEVA' : 'AL DÍA'}</span></h2>
       <div class="kv" style="margin-top:10px">
         <div class="k">INSTALADA</div><div class="v">${UI.esc(window.APP_VERSION || '—')}</div>
@@ -235,6 +238,7 @@
       avisos: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/>',
       seg: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
       apariencia: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+      telegram: '<path d="M21 4L3 11l6 2 2 6 3-4 5 3z"/><path d="M9 13l12-9"/>',
       app: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
     };
     const item = (k, title, summary) => `<div class="sitem" data-sub="${k}"><span class="sic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg></span><span class="stx"><b>${title}</b><em>${summary}</em></span><span class="sch">›</span></div>`;
@@ -250,6 +254,7 @@
       + item('apariencia', 'Apariencia', ({ dark: 'oscuro', light: 'claro', auto: 'automático' })[UI.theme.get()] + (UI.theme.fs() === 'big' ? ' · letra grande' : ''))
       + item('seg', 'Seguridad', UI.pin.get() ? 'PIN activo' + (UI.bio.get() ? ' · huella' : '') : 'sin PIN')
       + (window.AndroidBridge ? item('avisos', 'Avisos y widget', window.AndroidBridge.notificationsEnabled() ? 'avisos activos' : 'avisos desactivados') : '')
+      + item('telegram', 'Resumen por Telegram', 'enviar resumen ahora')
       + item('app', 'La app', (window.APP_VERSION || '—') + (UI.hasUpdate() ? ' · hay versión nueva' : ''))
       + '<div class="foot">Cartera Carlos · datos en la nube (Supabase) · precios Yahoo Finance y CoinGecko · divisas BCE</div>';
     const SUBT = { brokers: 'BROKERS', ret: 'RETENCIÓN', reglas: 'REGLAS', copia: 'COPIA', sync: 'SYNC', seg: 'SEGURIDAD', avisos: 'AVISOS', app: 'LA APP' };
@@ -261,6 +266,12 @@
     document.querySelectorAll('[data-sub]').forEach(el => el.onclick = () => UI.navigate({ sub: el.dataset.sub }));
     document.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { UI.theme.set(b.dataset.th); UI.render(); });
     document.querySelectorAll('[data-fs]').forEach(b => b.onclick = () => { UI.theme.setFs(b.dataset.fs); UI.render(); });
+    Q('#tgBtn').onclick = async () => {
+      const b = Q('#tgBtn'); b.textContent = 'ENVIANDO…'; b.disabled = true;
+      let r; try { r = await UI.sendDigest(); } catch (e) { r = { error: 'offline' }; }
+      b.disabled = false; b.textContent = '✈ ENVIAR RESUMEN AHORA';
+      UI.toast(r.ok ? 'RESUMEN ENVIADO A TELEGRAM' : r.error === 'missing_telegram' ? 'Telegram no está configurado en la nube' : r.error === 'empty' ? 'No hay datos que enviar' : 'No se pudo enviar: ' + r.error);
+    };
     Q('#subBack').onclick = () => UI.goBack();
     Q('#updBtn').onclick = async () => {
       if (UI.hasUpdate()) return UI.applyUpdate();
