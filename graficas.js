@@ -5,7 +5,7 @@
   const S = window.Store, M = window.Market, C = window.Calc;
   const U = () => window.UI;
   const lines = {};
-  const st = { cobrada: 'year', bm: '^GSPC', range: '1A', win: 'eur' };
+  const st = { loading: {}, failed: {}, cobrada: 'year', bm: '^GSPC', range: '1A', win: 'eur' };
   const PAL = ['#43E8C0', '#FFD36E', '#7ad9f5', '#b9a4e0', '#ffb86c', '#ff6b6b'];
   const GREY = '#93a8a6';
   const MES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -101,6 +101,14 @@
     const mine = twr(pts); const k0 = mine[0].idx; mine.forEach(p => { p.idx = p.idx / k0 * 100; });
     const h = M.history({ type: 'stock', yahoo: st.bm, currency: 'USD' }).closes, days = Object.keys(h).sort();
     let bm = null;
+    if (days.length <= 2 && !st.loading[st.bm] && !st.failed[st.bm]) {
+      // El índice aún no está descargado: se pide ahora (no depende de la actualización de precios).
+      st.loading[st.bm] = true;
+      const first = mdl.txs.reduce((m, x) => (x.date < m ? x.date : m), t);
+      M.load([{ id: 'bm-' + st.bm, ticker: st.bm, yahoo: st.bm, type: 'stock', currency: 'USD' }], { history: true, from: first })
+        .then(d => { st.loading[st.bm] = false; if (!d || !d.history || !Object.keys((d.history['Y:' + st.bm] || {}).closes || {}).length) st.failed[st.bm] = (d && d.errors && d.errors[0]) || 'sin datos'; UI.render(); })
+        .catch(e => { st.loading[st.bm] = false; st.failed[st.bm] = String(e && e.message || e); UI.render(); });
+    }
     if (days.length > 2) {
       let j = 0, last = null;
       const raw = pts.map(p => { while (j < days.length && days[j] <= p.d) { last = h[days[j]]; j++; } return last; });
@@ -118,7 +126,8 @@
       ${bm ? `<path d="${path(bm)}" fill="none" stroke="${PAL[1]}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` : ''}
       <path d="${path(mine.map(p => p.idx))}" fill="none" stroke="${PAL[0]}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/><line id="lcx" x1="0" x2="0" y1="0" y2="${H}" stroke="#e8f1ef" stroke-width="1" vector-effect="non-scaling-stroke" visibility="hidden"/></svg>`;
     const leg = `<div class="gl"><span><i style="background:${PAL[0]}"></i>TU CARTERA <b class="${fin >= 0 ? 'up' : 'down'}">${sg(fin)}</b></span>${bm ? `<span><i style="background:${PAL[1]}"></i>${bmName} <b>${sg(fb)}</b></span>` : ''}</div>`;
-    const note = bm ? `Rentabilidad sin contar lo que aportas o retiras. ${fin >= fb ? 'Vas por delante' : 'Vas por detrás'} del ${bmName} en este periodo (${sg(fin - fb)} de diferencia). El índice se mide en su divisa, sin cambio a euros.` : `Todavía no hay datos del ${bmName}: se descargan con la próxima actualización de precios (tira de la pantalla hacia abajo).`;
+    const wait = st.loading[st.bm] ? `Descargando el histórico del ${bmName}…` : st.failed[st.bm] ? `No se pudo descargar el ${bmName} (${U().esc(st.failed[st.bm])}). Cambia de índice o inténtalo luego.` : '';
+    const note = bm ? `Rentabilidad sin contar lo que aportas o retiras. ${fin >= fb ? 'Vas por delante' : 'Vas por detrás'} del ${bmName} en este periodo (${sg(fin - fb)} de diferencia). El índice se mide en su divisa, sin cambio a euros.` : (wait || `Preparando el ${bmName}…`);
     return card('FRENTE A UN ÍNDICE', 'Tu cartera y el índice, empezando los dos en 100.', ctl + `<div class="gcard">${svg}${leg}<div class="muted" style="font-size:11px;margin-top:6px">${note}</div></div>`);
   }
 
