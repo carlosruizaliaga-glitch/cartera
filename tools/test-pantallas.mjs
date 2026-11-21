@@ -48,7 +48,7 @@ try {
     const w = innerWidth;
     const bad = [...document.querySelectorAll('#app *, .sheet-bg *')].filter(e => {
       const r = e.getBoundingClientRect();
-      return r.width && r.right > w + 1 && getComputedStyle(e).position !== 'fixed';
+      return r.width && r.right > w + 1 && getComputedStyle(e).position !== 'fixed' && !e.closest('.seg.five');
     });
     return { sw: document.documentElement.scrollWidth, w, n: bad.length, ej: bad.slice(0, 2).map(e => e.tagName + '.' + e.className) };
   });
@@ -83,6 +83,19 @@ try {
   }
   await clic('[data-av=mapa]'); await page.evaluate(() => window.scrollTo(0, 0)); { const v0 = await page.evaluate(() => { const r = document.querySelector('.tile').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.mouse.move(v0[0] - 3, v0[1]); await page.mouse.move(v0[0], v0[1]); await sleep(200); check('Cuadro de info en el mapa', await page.evaluate(() => document.querySelector('.gtip').style.display === 'block')); await page.mouse.move(2, 2); }
   await clic('[data-mgrp=sector]'); check('MAPA agrupado por sector', (await page.$$eval('.tgrp', e => e.length)) >= 2); await clic('[data-mgrp=none]');
+  await clic('[data-av=sug]');
+  await page.evaluate(() => {
+    const f = (sym, o) => Object.assign({ sym, name: sym + ' Corp', currency: 'USD', sector: 'Healthcare', country: 'United States', price: 100, marketCap: 2e11, high52: 120, low52: 80,
+      divRate: 3.2, divYield: 0.032, yield5: 0.026, payout: 0.55, fcfPayout: 0.5, pe: 15, fwdPe: 13, netDebtEbitda: 1.2, currentRatio: 1.4, margin: 0.18, roe: 0.22,
+      earningsGrowth: 0.05, target: 125, analysts: 20, avg5: 105, pctile5: 0.25, streak: 12, cuts: 0, cagr5: 0.06, divYears: 12 }, o || {});
+    Suggest.setData({ JNJ: f('JNJ'), ZURN: f('ZURN.SW', { currency: 'CHF', sector: 'Financial Services', country: 'Switzerland', price: 480, divRate: 25, divYield: 0.052, netDebtEbitda: null }), BAD: f('BAD', { payout: 1.4, streak: 2 }) });
+    UI.render();
+  });
+  await sleep(500);
+  { const t = await textoPantalla(), o = await overflow(); check('Análisis → SUGERENCIAS (reparto, candidatas, descartadas)', ['REPARTO SUGERIDO', 'CANDIDATAS', 'JNJ'].every(x => t.includes(x)) && o.sw <= o.w, o.n ? JSON.stringify(o.ej) : ''); }
+  await page.evaluate(() => document.querySelector('[data-sugd]').click()); await sleep(400);
+  check('Ficha de candidata con filtros y puntuación', (await textoPantalla()).includes('NOTA'));
+  await page.evaluate(() => document.querySelector('[data-close]').click()); await sleep(300);
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
   for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'telegram', 'seg', 'app']) {

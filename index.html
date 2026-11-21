@@ -597,6 +597,18 @@ nav.tabs button .ic svg { width: 21px; height: 21px; }
 .gtip { font-family: var(--sans); }
 .toast { font-family: var(--sans); font-weight: 600; letter-spacing: 0; }
 .tile{padding:1px}.tile b,.tile i.nm,.tile span,.tile em{max-width:96%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}.tile .logo{font-size:calc(var(--ls)*.34)}
+/* Análisis con 6 pestañas: la barra se desliza de lado */
+.seg.five{overflow-x:auto;scrollbar-width:none}.seg.five::-webkit-scrollbar{display:none}
+.seg.five button{flex:0 0 auto;padding:10px 12px;font-size:11px}
+.sugrow,.gcard.sug{cursor:pointer}.sugrow{padding:12px 0;border-bottom:1px solid var(--line2)}.sugrow:last-of-type{border:0}
+.sh{display:flex;align-items:center;gap:12px}.sh .mid{flex:1;min-width:0}.sh .tk{font:700 14.5px var(--sans)}.sh .nm{font:400 12px var(--sans);color:var(--muted)}
+.sh .rt{text-align:right}.sh .val{font:600 14px var(--mono)}.sh .sub{font:500 11.5px var(--mono)}
+.score{display:inline-grid;place-items:center;min-width:42px;height:30px;border-radius:15px;font:700 14px var(--mono);padding:0 8px}
+.score.g{background:var(--green-soft);color:var(--green)}.score.y{background:var(--yellow-soft);color:var(--yellow)}.score.r{background:var(--red-soft);color:var(--red)}
+.why{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.why span{font:500 11px var(--sans);padding:4px 9px;border-radius:999px;line-height:1.3}
+.why .gd{background:var(--green-soft);color:var(--green)}.why .bd{background:var(--red-soft);color:var(--red)}.why .wn{background:var(--yellow-soft);color:var(--yellow)}
+.gcard.sug.out{opacity:.85}
+.sugin{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line2);border-radius:12px;padding:12px;font:400 14px var(--sans);color:var(--fg)}
 </style>
 </head>
 <body>
@@ -611,6 +623,7 @@ nav.tabs button .ic svg { width: 21px; height: 21px; }
   <script src="screens.js"></script>
   <script src="analysis.js"></script>
   <script src="graficas.js"></script>
+  <script src="sugerencias.js"></script>
   <script src="xlsx.js"></script>
   <script src="settings.js"></script>
   <script>
