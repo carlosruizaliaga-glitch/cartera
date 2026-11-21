@@ -151,19 +151,15 @@
       <div class="muted" style="font-size:10.5px;margin-top:6px">* ${cy} hasta hoy, comparado con el mismo periodo de ${cy - 1}.</div>
 
       <h2><span>PRÓXIMOS PAGOS</span><span class="muted">NETO ESTIMADO</span></h2>
-      <div class="rows">${up.slice(0, 25).map(e => `<div class="row" data-id="${UI.esc(e.asset.id)}">${UI.logoHtml(e.asset, M.quote(e.asset))}
+      <div class="rows">${up.slice(0, st.allPays ? 25 : 6).map(e => `<div class="row" data-id="${UI.esc(e.asset.id)}">${UI.logoHtml(e.asset, M.quote(e.asset))}
         <div class="mid"><div class="tk">${UI.esc(e.asset.ticker)} ${statusTag(e.status)}</div>
           <div class="nm">EX ${e.ex ? UI.fdate(e.ex) : '—'} · PAGO ${UI.fdate(e.pay)}</div>
           <div class="nm">${UI.qtyFmt(e.qty)} × ${UI.price(e.perShare, e.currency)}</div></div>
         <div class="rt"><div class="val yellow">${UI.eur(e.net)}</div><div class="sub dim">${dd(e.pay)}</div></div></div>`).join('') || '<div class="soon">SIN PAGOS PREVISTOS</div>'}</div>
-
-      <h2><span>RENTA POR EMPRESA</span><span class="muted">NETA/AÑO</span></h2>
-      <div class="rows">${f.by.map(b => `<div class="row" data-id="${UI.esc(b.a.id)}">${UI.logoHtml(b.a, M.quote(b.a))}
-        <div class="mid"><div class="tk">${UI.esc(b.a.ticker)}</div><div class="nm">YIELD ${UI.fnum(b.yld * 100, 2)}% · YoC ${UI.fnum(b.yoc * 100, 2)}%</div>
-          <div class="wbar"><i style="width:${(f.net ? b.net / f.net * 100 : 0).toFixed(1)}%"></i></div></div>
-        <div class="rt"><div class="val">${UI.eur(b.net)}</div><div class="sub dim">${UI.fnum(f.net ? b.net / f.net * 100 : 0, 1)}%</div></div></div>`).join('')}</div>`);
+      ${up.length > 6 ? `<button class="more" id="payMore">${st.allPays ? 'VER MENOS' : 'VER TODOS (' + Math.min(up.length, 25) + ')'}</button>` : ''}`);
 
     const app = document.getElementById('app');
+    const pm = $('#payMore'); if (pm) pm.onclick = () => { st.allPays = !st.allPays; U().render(); };
     const y0 = $('#yPrev'), y1 = $('#yNext');
     if (y0) y0.onclick = () => { st.year--; U().render(); };
     if (y1) y1.onclick = () => { st.year++; U().render(); };

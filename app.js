@@ -279,7 +279,7 @@
   function inicioHero(D, f) {
     const kpi = (k, v, c) => `<div><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`;
     const nx = D.evs[0];
-    const lines = `<div class="isub">${D.cobrado || nx ? `COBRADO ${D.year} <b class="yellow">${eur(D.cobrado)}</b>${nx ? ` · PRÓXIMO ${esc(nx.asset.ticker)} ${nx.pay.slice(8, 10)}/${nx.pay.slice(5, 7)} <b class="yellow">~${eur(nx.net)}</b>` : ''}` : ''}</div>`;
+    const lines = `<div class="isub">${D.cobrado || nx ? `Cobrado en ${D.year}: <b class="yellow">${eur(D.cobrado)}</b>${nx ? `<br>Próximo cobro: ${esc(nx.asset.ticker)} ${nx.pay.slice(8, 10)}/${nx.pay.slice(5, 7)} <b class="yellow">~${eur(nx.net)}</b>` : ''}` : ''}</div>`;
     const strip = D.fc ? `<div class="kpis">${kpi('RENTA/AÑO', eur(D.fc.net, 0), 'yellow')}${kpi('YIELD', fnum(D.fc.yld * 100, 1) + ' %')}${kpi('YoC', fnum(D.fc.yoc * 100, 1) + ' %')}${kpi('PLUSVAL. ' + D.year.slice(2), sEur(D.realized, 0), cls(D.realized))}</div>` : '';
     return lines + strip;
   }
@@ -311,7 +311,7 @@
       const pc = D.fc.net / goal * 100;
       out.unshift(`Objetivo de renta: <b class="g">${eur(D.fc.net, 0)} de ${eur(goal, 0)}</b> (${fnum(pc, 0)} %).` + (pc < 100 ? ` Te faltan ${eur(goal - D.fc.net, 0)} netos al año.` : ' ¡Conseguido!') + `<div class="meter"><i style="width:${Math.min(100, pc).toFixed(0)}%"></i></div>`);
     }
-    const concl = out.length ? `<h2><span>CONCLUSIONES</span></h2><div class="ins">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';
+    const concl = out.length ? `<h2><span>CONCLUSIONES</span></h2><div class="ins">${out.slice(0, 4).map(x => `<p>${x}</p>`).join('')}</div>` : '';
     // De un vistazo: datos sueltos que ayudan a leer la cartera
     const mv = rows.filter(r => r.dayPct != null && r.value != null).sort((x, y) => y.dayPct - x.dayPct);
     const fmtMv = r => r ? `${esc(r.a.ticker)} <span class="${cls(r.dayPct)}">${sPct(r.dayPct)}</span>` : '—';

@@ -532,6 +532,70 @@ html[data-priv=on] input[inputmode=decimal],html[data-priv=on] input[inputmode=n
 .gtip{position:fixed;z-index:60;display:none;pointer-events:none;max-width:230px;padding:9px 12px;border-radius:14px;background:var(--raise,#182427);border:1px solid var(--line2,#283a3c);box-shadow:0 10px 28px rgba(0,0,0,.55);font:500 11.5px/1.45 var(--mono,monospace);color:var(--fg)}
 .gtip b{display:block;font-weight:700;margin-bottom:3px;color:var(--fg)}.gtip span{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gsvg [data-tip],.tile,.stack i{-webkit-tap-highlight-color:transparent}
+
+/* ===== Calma: tipografía más suave, más aire y menos bordes ===== */
+:root { --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; }
+html, body { font: 400 14.5px/1.5 var(--sans); letter-spacing: 0; }
+button { font-family: var(--sans); letter-spacing: .01em; font-weight: 500; }
+main { padding: 0 18px; }
+/* Títulos de sección: sin raya, más pequeños y tranquilos */
+h2 { font: 600 12px var(--sans); letter-spacing: .08em; color: var(--muted); margin: 30px 2px 12px; padding: 0; border: 0; text-transform: uppercase; }
+h2 .tog { font: 600 11px var(--sans); letter-spacing: .04em; padding: 5px 11px; }
+.label, .kv .k, .sum .k, .f label { font-family: var(--sans); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; }
+.kv .v, .sum .v { font-weight: 500; }
+/* Cabecera y barra inferior */
+header.top .brand { font: 700 13px var(--mono); letter-spacing: .1em; }
+nav.tabs button { font: 600 10px var(--sans); letter-spacing: .02em; text-transform: uppercase; gap: 5px; }
+nav.tabs button .ic svg { width: 21px; height: 21px; }
+/* Inicio */
+.hero { padding: 24px 0 8px; }
+.hero .label { font-size: 11px; }
+.hero .big { font: 700 38px/1.1 var(--mono); letter-spacing: -.03em; margin: 8px 0 10px; }
+.hero .chg { font: 500 13.5px/1.6 var(--sans); }
+.hero .asof { font: 400 11.5px var(--sans); margin-top: 8px; color: var(--dim); text-transform: none; letter-spacing: 0; }
+.isub { font: 400 12.5px/1.6 var(--sans); margin-top: 10px; }
+.kpis { margin-top: 16px; }
+.kpis .k, .glance .k { font: 500 10px var(--sans); letter-spacing: .05em; }
+.kpis .v { font: 600 13.5px var(--mono); }
+.chart { margin-top: 14px; border-radius: 16px; }
+.ranges { margin-top: 8px; border: 0; gap: 4px; }
+.ranges button { font: 600 11.5px var(--sans); letter-spacing: .02em; }
+.seg { margin: 16px 0 0; }
+.seg button { font: 600 11.5px var(--sans); letter-spacing: .03em; }
+.seg.five button { font-size: 10.5px; }
+.perf, .ins, .gcard { padding-top: 12px; padding-bottom: 12px; }
+.dr { padding: 8px 0; font: 600 12px var(--mono); }
+.dr span { font-family: var(--sans); font-weight: 500; letter-spacing: .03em; }
+.ins p { padding: 14px 0; font: 400 14px/1.55 var(--sans); }
+.glance > div { padding: 14px 14px; }
+.glance .v { font: 600 13.5px var(--mono); margin-top: 6px; }
+/* Listas de posiciones y pagos */
+.rows > .row { padding: 15px 0; gap: 13px; border-bottom-color: var(--hair2, rgba(255,255,255,.06)); }
+.row .tk { font: 700 14.5px var(--sans); letter-spacing: .01em; }
+.row .nm { font: 400 12px/1.45 var(--sans); color: var(--muted); }
+.row .val { font: 600 14.5px var(--mono); }
+.row .sub { font: 500 11.5px var(--mono); line-height: 1.5; }
+.row .sub .dim { font-family: var(--sans); font-size: 10.5px; letter-spacing: .04em; }
+.tag, .evt { font-family: var(--sans); letter-spacing: .04em; font-weight: 600; font-size: 10px; }
+.card, .sum, .warn { border-radius: 14px; }
+.card { padding: 16px; margin: 16px 0; }
+.more { display: block; width: 100%; margin: 12px 0 0; padding: 13px; border-radius: 14px; border: 1px solid var(--hair, rgba(255,255,255,.09)); background: var(--green-soft); color: var(--green); font: 600 12px var(--sans); letter-spacing: .06em; }
+/* Ajustes, mapa y formularios */
+.sitem { padding: 15px 16px; margin-bottom: 10px; }
+.sitem .stx b { font: 600 15px var(--sans); }
+.sitem .stx em { font: 400 12.5px var(--sans); margin-top: 1px; }
+.f .fld { margin: 16px 0 0; }
+.f input { padding: 13px 12px; }
+.pbtns button { font: 600 11px var(--sans); }
+.tile b { font-family: var(--sans); font-weight: 700; letter-spacing: 0; }
+.tile span { font: 600 11px var(--mono); }
+.tile em { font-family: var(--sans); }
+.tmleg, .gl { font-family: var(--sans); }
+.gr { padding: 9px 0; }
+.grow { padding: 12px 0; font-family: var(--sans); }
+.grow em { font: 600 12.5px var(--mono); }
+.gtip { font-family: var(--sans); }
+.toast { font-family: var(--sans); font-weight: 600; letter-spacing: 0; }
 </style>
 </head>
 <body>
