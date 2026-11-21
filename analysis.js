@@ -251,9 +251,10 @@
     } else tiles = squarify(items, 0, 0, W, H);
     const lbl = i => { const dp = st.col === 'pl' ? i.r.plPct : i.r.dayPct; return dp == null ? '' : (dp >= 0 ? '+' : '−') + UI.fnum(Math.abs(dp) * 100, 1) + '%'; };
     const html = tiles.map(t => {
-      const big = t.w > 54 && t.h > 36, mid = t.w > 30 && t.h > 20, named = t.w > 62 && t.h > 62;
+      const ls = Math.max(14, Math.min(34, t.w * 0.36, t.h * 0.28)), logo = t.w > 40 && t.h > 66;
+      const big = t.w > 54 && t.h > (logo ? ls + 52 : 36), mid = t.w > 30 && t.h > 20, named = t.w > 62 && t.h > 118;
       const sub = byCap ? UI.fnum(t.size / 1e9, t.size >= 1e10 ? 0 : 1) + ' mil M' : UI.fnum(t.size / (total || 1) * 100, 1) + '%';
-      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${mid ? `<b style="font-size:${Math.max(8, Math.min(20, Math.sqrt(t.w * t.h) / 4.2, t.h * 0.5)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${named ? `<i class="nm">${UI.esc(t.r.a.name || '')}</i>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
+      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${logo ? `<div style="--ls:${ls.toFixed(0)}px;line-height:0">${UI.logoHtml(t.r.a, t.r.q)}</div>` : ''}${mid ? `<b style="font-size:${Math.max(8, Math.min(20, Math.sqrt(t.w * t.h) / 4.2, t.h * 0.5)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${named ? `<i class="nm">${UI.esc(t.r.a.name || '')}</i>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
     }).join('');
     const btn = (k, cur, list) => `<div class="seg sm">${list.map(o => `<button data-${k}="${o[0]}" class="${cur === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
     return `${btn('mapa', st.mapa, [['peso', 'POR PESO'], ['cap', 'POR CAPITALIZACIÓN']])}
