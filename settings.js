@@ -215,7 +215,8 @@
         ? `<div class="bk2"><button id="pinChg">CAMBIAR PIN</button><button id="pinDel" class="out">QUITAR PIN</button></div>
            <button id="bioBtn">${UI.bio.get() ? '✓ HUELLA ACTIVA · QUITAR' : '👆 ACTIVAR HUELLA / FACE ID'}</button>`
         : '<button id="pinSet">🔒 PONER PIN PARA ABRIR LA APP</button>'}</div>
-      <div class="muted" style="font-size:11px;margin-top:6px">Pide el PIN al abrir la app y tras 2 minutos fuera de ella. Solo protege este móvil: tus datos siguen en la nube.</div>
+      <div class="bk" style="margin-top:10px"><button id="roOn">👁 ACTIVAR MODO LECTURA</button></div>
+      <div class="muted" style="font-size:11px;margin-top:6px">Modo lectura: oculta los importes y bloquea cualquier cambio, para enseñar la cartera. Para salir pide tu PIN (si tienes). · Pide el PIN al abrir la app y tras 2 minutos fuera de ella. Solo protege este móvil: tus datos siguen en la nube.</div>
 `,
       sync: `
       <h2><span>SINCRONIZACIÓN</span></h2>
@@ -272,6 +273,7 @@
       b.disabled = false; b.textContent = '✈ ENVIAR RESUMEN AHORA';
       UI.toast(r.ok ? 'RESUMEN ENVIADO A TELEGRAM' : r.error === 'missing_telegram' ? 'Telegram no está configurado en la nube' : r.error === 'empty' ? 'No hay datos que enviar' : 'No se pudo enviar: ' + r.error);
     };
+    Q('#roOn').onclick = () => UI.setReadonly(true);
     Q('#subBack').onclick = () => UI.goBack();
     Q('#updBtn').onclick = async () => {
       if (UI.hasUpdate()) return UI.applyUpdate();

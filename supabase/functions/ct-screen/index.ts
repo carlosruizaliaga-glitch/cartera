@@ -52,14 +52,15 @@ async function screen(sym: string) {
   const divs = Object.values(res?.events?.dividends || {}) as any[];
 
   // Dividendo anual por año (años completos) y racha de años pagando / sin recortes
-  const byYear: Record<number, number> = {};
-  for (const d of divs) { const y = isoYear(d.date); byYear[y] = (byYear[y] || 0) + d.amount; }
+  const byYear: Record<number, number> = {}, cnt: Record<number, number> = {};
+  for (const d of divs) { const y = isoYear(d.date); byYear[y] = (byYear[y] || 0) + d.amount; cnt[y] = (cnt[y] || 0) + 1; }
   const thisYear = new Date().getUTCFullYear();
   const years = Object.keys(byYear).map(Number).filter((y) => y < thisYear).sort((a, b) => a - b);
   let streak = 0;
   for (let i = years.length - 1; i >= 0; i--) { if (i === years.length - 1 || years[i] === years[i + 1] - 1) streak++; else break; }
   let cuts = 0;
-  for (let i = 1; i < years.length; i++) if (years[i] === years[i - 1] + 1 && byYear[years[i]] < byYear[years[i - 1]] * 0.9) cuts++;
+  // Recorte = el año suma >15 % menos que el anterior con el mismo número de pagos (así no cuenta un pago que cae en otro año). El primer año puede estar incompleto: no se usa de base.
+  for (let i = 2; i < years.length; i++) if (years[i] === years[i - 1] + 1 && cnt[years[i]] >= cnt[years[i - 1]] && byYear[years[i]] < byYear[years[i - 1]] * 0.85) cuts++;
   const first = years[0], last = years[years.length - 1];
   const span = years.length >= 6 ? Math.min(5, last - first) : 0;
   const cagr5 = span >= 3 && byYear[years[years.length - 1 - span]] > 0 ? Math.pow(byYear[last] / byYear[years[years.length - 1 - span]], 1 / span) - 1 : null;

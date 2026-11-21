@@ -275,18 +275,19 @@
   function render() {
     const UI = U();
     const rows = UI.model().rows;
-    const body = st.view === 'dist' ? renderDist(rows) : st.view === 'rules' ? renderRules(rows) : st.view === 'mapa' ? renderMapa(rows) : st.view === 'graf' ? window.Charts.render(rows) : st.view === 'sug' ? window.Suggest.render(rows) : renderFiscal();
+    const body = st.view === 'dist' ? renderDist(rows) : st.view === 'rules' ? renderRules(rows) : st.view === 'mapa' ? renderMapa(rows) : st.view === 'graf' ? window.Charts.render(rows) : st.view === 'sug' ? window.Suggest.render(rows) : st.view === 'plan' ? window.Plan.render(rows) : renderFiscal();
     const R = rules(), tot = rows.reduce((s, r) => s + (r.value || 0), 0);
     const nBad = (rows.some(r => tot && r.value / tot * 100 > R.maxPerCompany) ? 1 : 0)
       + (rows.filter(r => r.a.highYield).reduce((s, r) => s + r.value, 0) / (tot || 1) * 100 > R.maxHighYield ? 1 : 0)
       + (rows.filter(r => r.a.type === 'crypto').reduce((s, r) => s + r.value, 0) / (tot || 1) * 100 > R.maxCrypto ? 1 : 0);
     UI.shell(`
-      <div class="seg five">${[['dist', 'DISTRIBUCIÓN'], ['mapa', 'MAPA'], ['graf', 'GRÁFICAS'], ['sug', 'SUGERENCIAS'], ['rules', 'REGLAS' + (nBad ? ' · ' + nBad : '')], ['fiscal', 'FISCAL']].map(o =>
+      <div class="seg five">${[['dist', 'DISTRIBUCIÓN'], ['mapa', 'MAPA'], ['graf', 'GRÁFICAS'], ['sug', 'SUGERENCIAS'], ['plan', 'PLAN'], ['rules', 'REGLAS' + (nBad ? ' · ' + nBad : '')], ['fiscal', 'FISCAL']].map(o =>
         `<button data-av="${o[0]}" class="${st.view === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>
       ${body}`);
     const app = document.getElementById('app');
     app.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { st.view = b.dataset.av; UI.render(); });
     if (window.Charts) { window.Charts.bind(app, () => UI.render()); window.Charts.tips(app); }
+    if (st.view === 'plan' && window.Plan) window.Plan.bind(app, () => UI.render());
     if (st.view === 'sug' && window.Suggest) window.Suggest.bind(app, () => UI.render());
     app.querySelectorAll('[data-mgrp]').forEach(b => b.onclick = () => { st.grp = b.dataset.mgrp; UI.render(); });
     app.querySelectorAll('[data-mapa]').forEach(b => b.onclick = () => { st.mapa = b.dataset.mapa; UI.render(); });

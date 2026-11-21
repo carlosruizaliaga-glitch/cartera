@@ -1,0 +1,15 @@
+import puppeteer from 'puppeteer-core';import http from 'http';import fs from 'fs';import path from 'path';
+const root=path.resolve('..');const srv=http.createServer((q,r)=>{const p=path.join(root,decodeURIComponent(q.url.split('?')[0]));if(!fs.existsSync(p)||fs.statSync(p).isDirectory()){r.writeHead(404);return r.end()}r.writeHead(200,{'Content-Type':p.endsWith('.html')?'text/html':p.endsWith('.json')?'application/json':'text/javascript'});fs.createReadStream(p).pipe(r)});
+await new Promise(r=>srv.listen(0,r));
+const real=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+const b=await puppeteer.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+const pg=await b.newPage();await pg.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+await pg.goto(`http://127.0.0.1:${srv.address().port}/test.html`);await new Promise(r=>setTimeout(r,2500));
+const w=ms=>new Promise(r=>setTimeout(r,ms));
+await pg.evaluate(()=>document.querySelector('[data-tab=analisis]').click());await w(300);
+await pg.evaluate(()=>document.querySelector('[data-av=sug]').click());await w(300);
+await pg.evaluate(d=>{Suggest.setData(d);UI.render();},real);await w(500);
+await pg.evaluate(()=>{const o=document.querySelector('#sugOut');o&&o.click()});await w(400);
+const txt=await pg.evaluate(()=>document.getElementById('app').innerText);
+console.log(txt.split('\n').filter(l=>l.trim()).join('\n').slice(0,6500));
+await b.close();srv.close();

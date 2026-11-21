@@ -171,6 +171,15 @@
     render();
     toast(PRIV ? 'IMPORTES OCULTOS' : 'IMPORTES VISIBLES');
   }
+  // ---------- Modo lectura: enseñar la cartera sin poder tocar nada ----------
+  let RO = pref('ro', false);
+  function setReadonly(v) { RO = !!v; setPref('ro', RO); if (RO) { PRIV = true; setPref('priv', true); } render(); toast(RO ? 'MODO LECTURA ACTIVADO' : 'MODO LECTURA DESACTIVADO'); }
+  function exitReadonly() {
+    const done = () => setReadonly(false);
+    if (!getPin()) return done();
+    const bg = sheet(`<div class="hd"><div class="t">SALIR DE MODO LECTURA</div><button data-close>✕</button></div><form class="f" onsubmit="return false"><div class="fld"><label>PIN</label><input id="roPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div><div class="actions"><button type="button" id="roOk" class="primary">ACEPTAR</button></div></form>`);
+    $('#roOk', bg).onclick = async () => { if (await checkPin($('#roPin', bg).value.trim(), getPin())) { bg.remove(); done(); } else toast('PIN INCORRECTO'); };
+  }
   const pendingCount = () => S.list('dividend').filter(d => d.status === 'pending').length;
   function shell(inner) {
     const tabs = [['cartera', '▤', 'CARTERA'], ['dividendos', '$', 'DIVIDENDOS'], ['calendario', '▦', 'CALENDARIO'], ['analisis', '◧', 'ANÁLISIS']];
@@ -179,16 +188,17 @@
         <div class="brand"><b>&gt;</b> CARTERA CARLOS</div><div class="sp"></div>
         <button class="iconbtn${PRIV ? ' on' : ''}" id="privBtn" aria-label="${PRIV ? 'Mostrar importes' : 'Ocultar importes'}" aria-pressed="${PRIV}">${eyeIcon(PRIV)}</button>
         <button class="iconbtn" id="syncBtn"${S.status() === "ok" && !S.pending() ? " hidden" : ""}>${syncDot()}</button>
-        <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>
+        ${RO ? '<button class="iconbtn on" id="roBtn">🔒 LECTURA</button>' : '<button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>'}
       </header>
       <div id="ptr"></div>
       <main id="main">${updateBanner()}${inner}</main>
-      <nav class="tabs">${tabs.map((t, i) => (i === 2 ? '<button class="fab" id="fab" aria-label="Añadir">+</button>' : '') +
+      <nav class="tabs">${tabs.map((t, i) => (i === 2 ? `<button class="fab" id="fab" aria-label="Añadir"${RO ? ' hidden' : ''}>+</button>` : '') +
         `<button data-tab="${t[0]}" class="${ui.tab === t[0] ? 'on' : ''}"><span class="ic">${navIcon(t[0])}</span>${t[2]}${t[0] === 'dividendos' && pendingCount() ? `<i class="badge">${pendingCount()}</i>` : ''}</button>`).join('')}</nav>`;
     app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => navigate({ tab: b.dataset.tab }));
     $('#privBtn').onclick = () => setPriv(!PRIV);
     $('#syncBtn').onclick = () => { S.syncNow(); refreshMarket(true); };
-    $('#setBtn').onclick = () => navigate({ tab: 'ajustes', sub: null });
+    if ($('#setBtn')) $('#setBtn').onclick = () => navigate({ tab: 'ajustes', sub: null });
+    if ($('#roBtn')) $('#roBtn').onclick = exitReadonly;
     $('#fab').onclick = openAdd;
   }
 
@@ -326,7 +336,7 @@
       ${cell('TOP 5 PESAN', fnum(top5, 1) + ' %')}${cell('POSICIONES', f === 'stock' ? nSt + ' acciones' : f === 'crypto' ? nCr + ' criptos' : nSt + ' acc. · ' + nCr + ' cripto')}
       ${f === 'all' ? cell('CRIPTO', fnum(crW, 1) + ' %') : ''}${f !== 'crypto' ? cell('COBROS 30 DÍAS', in30 > 0 ? '<span class="yellow">~' + eur(in30, 0) + '</span>' : '—') : ''}
       ${cell('COSTE', eur(cost, 0))}${cell('P/L LATENTE', `<span class="${cls(total - cost)}">${sEur(total - cost, 0)} (${sPct(cost ? (total - cost) / cost : 0)})</span>`)}</div>`;
-    return perHtml + concl + glance;
+    return (window.Plan ? window.Plan.alertsHtml(rows, total) : '') + perHtml + concl + glance;
   }
 
   // ---------- Resumen para Telegram (se manda por la función ct-notify) ----------
@@ -881,7 +891,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { seriesFor, buildDigest, sendDigest, theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { readonly: () => RO, setReadonly, seriesFor, buildDigest, sendDigest, theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   document.addEventListener('DOMContentLoaded', () => { if (!window.Divs || S.loggedIn()) render(); });
   autoLockCheck();

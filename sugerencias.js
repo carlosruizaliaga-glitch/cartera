@@ -196,7 +196,7 @@
     const alHtml = al.items.length ? `<h2><span>REPARTO SUGERIDO · ${UI.eur(st.amount, 0)}</span></h2><div class="gcard rowsc">${al.items.map(i => {
       const e = i.e, wsBefore = ex.sector[e.sec] || 0, wsAfter = ((wsBefore / 100 * ex.total) + i.cost) / al.newTotal * 100;
       return `<div class="sugrow" data-sugd="${esc(e.c.sym)}"><div class="sh">${UI.logoHtml({ ticker: e.c.sym, yahoo: e.c.sym, type: 'stock' }, null)}<div class="mid"><div class="tk">${esc(e.c.sym)} <span class="muted">· ${i.shares} acc.</span></div><div class="nm">${esc(e.c.name)}</div></div><div class="rt"><div class="val">${UI.eur(i.cost, 0)}</div><div class="sub yellow">+${UI.eur(i.inc, 0)}/año</div></div></div>
-        <div class="nm" style="margin-top:4px">Peso tras comprar ${UI.fnum(i.wAfter, 1)}% · ${esc(e.sec)} ${UI.fnum(wsBefore, 1)}% → ${UI.fnum(wsAfter, 1)}%</div></div>`;
+        <div class="nm" style="margin-top:4px">Peso tras comprar ${UI.fnum(i.wAfter, 1)}% · ${esc(e.sec)} ${UI.fnum(wsBefore, 1)}% → ${UI.fnum(wsAfter, 1)}%</div><button class="mini sugbuy" data-sugbuy="${esc(e.c.sym)}" data-q="${i.shares}">REGISTRAR COMPRA ›</button></div>`;
     }).join('')}<div class="muted" style="font-size:11.5px;padding:10px 0 4px">Reparto en proporción a la nota de cada una, máximo una por sector a partir de la segunda, sin pasar tu límite por empresa (${UI.fnum(rules.maxPerCompany, 0)}%). Sobran ${UI.eur(al.left, 0)} por acciones enteras. La renta es bruta.</div></div>` : '';
 
     const rank = ok.length ? `<h2><span>CANDIDATAS · ${ok.length}</span></h2>${ok.slice(0, 15).map(e => card(e)).join('')}` : (have.length ? `<div class="gcard"><div class="muted">Ninguna candidata pasa con exigencia ${lv.label.toLowerCase()}. Prueba con FLEXIBLE.</div></div>` : '');
@@ -244,7 +244,13 @@
     app.querySelectorAll('[data-slv]').forEach(b => b.onclick = () => { st.level = b.dataset.slv; save(); rerender(); });
     const r = app.querySelector('#sugRun'); if (r) r.onclick = () => run(!!st.at, rerender);
     const o = app.querySelector('#sugOut'); if (o) o.onclick = () => { st.showOut = !st.showOut; rerender(); };
-    app.querySelectorAll('[data-sugd]').forEach(el => el.onclick = () => detail(el.dataset.sugd, rows));
+    app.querySelectorAll('[data-sugd]').forEach(el => el.onclick = e => { if (e.target.closest('[data-sugbuy]')) return; detail(el.dataset.sugd, rows); });
+    app.querySelectorAll('[data-sugbuy]').forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const sym = b.dataset.sugbuy, qty = +b.dataset.q, a = S.list('asset').find(x => x.yahoo === sym), m = Object.keys(MKT).find(x => sym.endsWith(x));
+      if (a) window.Forms.openTrade('buy', { asset: a, qty });
+      else window.Forms.openAssetForm({ ticker: m ? sym.slice(0, -m.length) : sym, market: m ? MKT[m] : 'US', then: na => window.Forms.openTrade('buy', { asset: na, qty }) });
+    });
     const add = app.querySelector('#sugAddB');
     if (add) add.onclick = () => {
       const v = (app.querySelector('#sugAdd').value || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
@@ -254,5 +260,11 @@
     };
   }
 
-  window.Suggest = { render, bind, setData: d => { st.data = d; st.at = Date.now(); }, BASE };
+  // Mejor candidata ya analizada (para las alertas de Inicio): nota >= 70 con la exigencia actual
+  function best(rows) {
+    const ex = exposure(rows), lv = LEVELS[st.level];
+    const ok = universe(rows).filter(s => st.data[s]).map(s => evaluate(st.data[s], ex, lv)).filter(e => !e.bad.length && e.c.price != null).sort((a, b) => b.score - a.score);
+    return ok.length && ok[0].score >= 70 ? ok[0] : null;
+  }
+  window.Suggest = { best, render, bind, setData: d => { st.data = d; st.at = Date.now(); }, BASE };
 })();

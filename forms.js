@@ -143,13 +143,14 @@
   // COMPRA / VENTA
   // ======================================================================
   function openTrade(kind, opts) {
+    if (U().readonly && U().readonly()) return U().toast('MODO LECTURA: no se puede editar');
     opts = opts || {};
     const edit = opts.tx || null;
     const isSell = kind === 'sell';
     const st = {
       a: edit ? S.get(edit.asset) : (opts.asset || null),
       date: edit ? edit.date : U().today(),
-      qty: edit ? edit.qty : NaN, price: edit ? edit.price : NaN, fx: edit ? edit.fx : NaN, fee: edit ? edit.fee : NaN,
+      qty: edit ? edit.qty : (opts.qty != null ? opts.qty : NaN), price: edit ? edit.price : NaN, fx: edit ? edit.fx : NaN, fee: edit ? edit.fee : NaN,
       cur: edit ? edit.currency : null, broker: edit ? edit.broker : null,
       touched: { price: !!edit, fx: !!edit, fee: !!edit }
     };
@@ -338,6 +339,7 @@
     return { qty, per, cur, gross, net: gross * (1 - w), w };
   }
   function openDividend(opts) {
+    if (U().readonly && U().readonly()) return U().toast('MODO LECTURA: no se puede editar');
     opts = opts || {};
     const edit = opts.div || null;
     const st = {
@@ -431,6 +433,7 @@
   // SCRIP (acciones gratis)
   // ======================================================================
   function openScrip(opts) {
+    if (U().readonly && U().readonly()) return U().toast('MODO LECTURA: no se puede editar');
     opts = opts || {};
     const edit = opts.tx || null;
     const st = { a: edit ? S.get(edit.asset) : (opts.asset || null), date: edit ? edit.date : U().today(), qty: edit ? edit.qty : NaN };
@@ -499,6 +502,7 @@
   const marketOfAsset = a => a.type === 'crypto' ? 'CRIPTO' : (a.market === 'NYSE' || a.market === 'NASDAQ' || a.market === 'OTCMKTS' ? 'US' : a.market || 'US');
 
   function openAssetForm(opts) {
+    if (U().readonly && U().readonly()) return U().toast('MODO LECTURA: no se puede editar');
     opts = opts || {};
     const edit = opts.asset || null;
     const f = edit ? Object.assign({}, edit) : {
@@ -644,6 +648,7 @@
 
   // ---------- Menú "+" ----------
   function openAdd() {
+    if (U().readonly && U().readonly()) return U().toast('MODO LECTURA: no se puede editar');
     const bg = U().sheet(`<div class="hd"><div class="t">AÑADIR</div><button data-close>✕</button></div>
       <div class="menu">
         <button data-k="buy"><span class="up">+ COMPRA</span><span class="s">Acciones, ETF o cripto</span></button>

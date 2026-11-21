@@ -96,6 +96,15 @@ try {
   await page.evaluate(() => document.querySelector('[data-sugd]').click()); await sleep(400);
   check('Ficha de candidata con filtros y puntuación', (await textoPantalla()).includes('NOTA'));
   await page.evaluate(() => document.querySelector('[data-close]').click()); await sleep(300);
+  await clic('[data-av=plan]'); { const tx = await textoPantalla(), o = await overflow(); check('Análisis → PLAN (objetivos, simulador, salud)', ['OBJETIVOS', 'SIMULADOR', 'SALUD DE TUS DIVIDENDOS'].every(x => tx.includes(x)) && o.sw <= o.w, o.n ? JSON.stringify(o.ej) : ''); }
+  // Modo lectura: sin botón +, formularios bloqueados, se sale sin PIN
+  await page.evaluate(() => UI.setReadonly(true)); await sleep(400);
+  check('Modo lectura oculta el botón + y los importes', await page.evaluate(() => getComputedStyle(document.getElementById('fab')).display === 'none' && !!document.getElementById('roBtn')));
+  await page.evaluate(() => window.Forms.openAdd()); await sleep(300);
+  check('Modo lectura bloquea los formularios', !(await page.$('.sheet-bg')));
+  await page.evaluate(() => document.getElementById('roBtn').click()); await sleep(500);
+  check('Se sale del modo lectura', !(await page.$('#roBtn')));
+  if (await page.evaluate(() => UI.priv())) await clic('#privBtn');
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
   for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'telegram', 'seg', 'app']) {
