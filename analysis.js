@@ -39,7 +39,7 @@
     const d = distribution(rows, st.dim);
     return `
       <div class="chips" style="margin-top:12px">${DIMS.map(x => `<button data-dim="${x[0]}" class="${st.dim === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>
-      <div class="stack">${d.groups.map(g => `<i style="width:${(g.w * 100).toFixed(2)}%;background:${g.color}"></i>`).join('')}</div>
+      <div class="stack">${d.groups.map(g => `<i data-tip="${UI.esc(g.k)}|${UI.fnum(g.w * 100, 1)}% · ${UI.eur(g.v, 0)}" style="width:${(g.w * 100).toFixed(2)}%;background:${g.color}"></i>`).join('')}</div>
       <div class="dist">${d.groups.map(g => `<div class="dg">
         <div class="dh"><i class="sq" style="background:${g.color}"></i><b>${UI.esc(g.k)}</b><span class="v">${UI.eur(g.v, 0)}</span><span class="w">${UI.fnum(g.w * 100, 1)}%</span></div>
         <div class="dbar"><i style="width:${(g.w * 100).toFixed(2)}%;background:${g.color}"></i></div>
@@ -254,7 +254,9 @@
       const ls = Math.max(14, Math.min(34, t.w * 0.36, t.h * 0.28)), logo = t.w > 40 && t.h > 66;
       const big = t.w > 54 && t.h > (logo ? ls + 52 : 36), mid = t.w > 30 && t.h > 20, named = t.w > 62 && t.h > 118;
       const sub = byCap ? UI.fnum(t.size / 1e9, t.size >= 1e10 ? 0 : 1) + ' mil M' : UI.fnum(t.size / (total || 1) * 100, 1) + '%';
-      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${logo ? `<div style="--ls:${ls.toFixed(0)}px;line-height:0">${UI.logoHtml(t.r.a, t.r.q)}</div>` : ''}${mid ? `<b style="font-size:${Math.max(8, Math.min(20, Math.sqrt(t.w * t.h) / 4.2, t.h * 0.5)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${named ? `<i class="nm">${UI.esc(t.r.a.name || '')}</i>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
+      const ra = t.r, tp = [ra.a.ticker + ' · ' + (ra.a.name || ''), 'Peso ' + UI.fnum(total ? ra.value / total * 100 : 0, 1) + '%  Valor ' + UI.eur(ra.value, 0), 'Hoy ' + (ra.dayPct != null ? UI.sPct(ra.dayPct) : '—') + '  P/L ' + (ra.plPct != null ? UI.sPct(ra.plPct) : '—')];
+      if (byCap) tp.push('Capitalización ' + UI.fnum(t.size / 1e9, 1) + ' mil M');
+      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" data-tip="${tp.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')).join('|')}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${logo ? `<div style="--ls:${ls.toFixed(0)}px;line-height:0">${UI.logoHtml(t.r.a, t.r.q)}</div>` : ''}${mid ? `<b style="font-size:${Math.max(8, Math.min(20, Math.sqrt(t.w * t.h) / 4.2, t.h * 0.5)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${named ? `<i class="nm">${UI.esc(t.r.a.name || '')}</i>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
     }).join('');
     const btn = (k, cur, list) => `<div class="seg sm">${list.map(o => `<button data-${k}="${o[0]}" class="${cur === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
     return `${btn('mapa', st.mapa, [['peso', 'POR PESO'], ['cap', 'POR CAPITALIZACIÓN']])}
@@ -283,7 +285,7 @@
       ${body}`);
     const app = document.getElementById('app');
     app.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { st.view = b.dataset.av; UI.render(); });
-    if (window.Charts) window.Charts.bind(app, () => UI.render());
+    if (window.Charts) { window.Charts.bind(app, () => UI.render()); window.Charts.tips(app); }
     app.querySelectorAll('[data-mgrp]').forEach(b => b.onclick = () => { st.grp = b.dataset.mgrp; UI.render(); });
     app.querySelectorAll('[data-mapa]').forEach(b => b.onclick = () => { st.mapa = b.dataset.mapa; UI.render(); });
     app.querySelectorAll('[data-mcol]').forEach(b => b.onclick = () => { st.col = b.dataset.mcol; UI.render(); });

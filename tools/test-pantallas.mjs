@@ -67,7 +67,22 @@ try {
   await clic('[data-av=rules]'); check('Análisis → REGLAS', (await textoPantalla()).includes('PESO POR EMPRESA'));
   await clic('[data-av=mapa]'); { const n = await page.$$eval('.tile', e => e.length); const o = await overflow(); check('Análisis → MAPA con cuadros de peso', n >= 5 && o.n === 0); await clic('[data-mapa=cap]'); const n2 = await page.$$eval('.tile', e => e.length); check('MAPA por capitalización', n2 >= 3); await clic('[data-mapa=peso]'); }
   await clic('[data-av=graf]'); { const tx = await textoPantalla(), o = await overflow(); check('Análisis → GRÁFICAS (cobros, índice, ganadores, calor)', ['COBROS POR MES', 'RENTA COBRADA', 'FRENTE A UN ÍNDICE', 'GANADORES Y PERDEDORES', 'RENTA POR EMPRESA'].every(x => tx.includes(x)) && o.sw <= o.w, o.n ? JSON.stringify(o.ej) : ''); }
-  await clic('[data-av=mapa]'); await clic('[data-mgrp=sector]'); check('MAPA agrupado por sector', (await page.$$eval('.tgrp', e => e.length)) >= 2); await clic('[data-mgrp=none]');
+  { // Cuadro de info al pasar el dedo/ratón por las gráficas
+    const probar = async (sel, nombre) => {
+      await page.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center' }), sel); await sleep(250);
+      const r = await page.evaluate(s => { const b = document.querySelector(s).getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }, sel);
+      await page.mouse.move(r.x - 5, r.y); await page.mouse.move(r.x, r.y); await sleep(200);
+      const v = await page.evaluate(() => { const g = document.querySelector('.gtip'); return g && g.style.display === 'block' ? g.innerText : ''; });
+      check(`Cuadro de info en ${nombre}`, v.length > 3, v.split(String.fromCharCode(10)).join(' / ').slice(0, 60));
+      await page.mouse.move(2, 2); await sleep(150);
+    };
+    await probar('#app svg[data-lc]', 'gráfica frente a índice');
+    await probar('#app .gsvg g[data-tip]', 'barras de cobros');
+    await probar('#app .gr[data-tip]', 'ganadores y perdedores');
+    await probar('#app .hm span[data-tip]', 'mapa de calor');
+  }
+  await clic('[data-av=mapa]'); await page.evaluate(() => window.scrollTo(0, 0)); { const v0 = await page.evaluate(() => { const r = document.querySelector('.tile').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.mouse.move(v0[0] - 3, v0[1]); await page.mouse.move(v0[0], v0[1]); await sleep(200); check('Cuadro de info en el mapa', await page.evaluate(() => document.querySelector('.gtip').style.display === 'block')); await page.mouse.move(2, 2); }
+  await clic('[data-mgrp=sector]'); check('MAPA agrupado por sector', (await page.$$eval('.tgrp', e => e.length)) >= 2); await clic('[data-mgrp=none]');
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
   for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'telegram', 'seg', 'app']) {

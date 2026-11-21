@@ -4,11 +4,15 @@
   'use strict';
   const S = window.Store, M = window.Market, C = window.Calc;
   const U = () => window.UI;
+  const lines = {};
   const st = { cobrada: 'year', bm: '^GSPC', range: '1A', win: 'eur' };
   const PAL = ['#43E8C0', '#FFD36E', '#7ad9f5', '#b9a4e0', '#ffb86c', '#ff6b6b'];
   const GREY = '#93a8a6';
   const MES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
   const BENCH = [['^GSPC', 'S&P 500'], ['URTH', 'MSCI WORLD']];
+
+  const tip = (lines) => ' data-tip="' + lines.map(l => String(l).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')).join('|') + '"';
+  const esc = s => U().esc(s);
 
   const seg = (k, cur, list) => `<div class="seg sm">${list.map(o => `<button data-g${k}="${o[0]}" class="${cur === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
   const card = (title, sub, inner, tail) => `<h2><span>${title}</span>${tail || ''}</h2>${sub ? `<div class="muted" style="font-size:11.5px;margin:-2px 2px 8px">${sub}</div>` : ''}${inner}`;
@@ -36,7 +40,8 @@
         const h = m.by[k] / max * (H - 8); y -= h;
         return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${Math.max(h, 0.5).toFixed(1)}" fill="${col(k)}" rx="2"/>`;
       }).join('');
-      return segs + `<text x="${(x + bw / 2).toFixed(1)}" y="${H + 14}" text-anchor="middle" class="ax">${MES[m.m]}</text>`;
+      const tl = [MES[m.m] + ' ' + m.y + ' · ' + UI.eur(m.tot, 0)].concat(Object.keys(m.by).sort((a, b) => m.by[b] - m.by[a]).map(k => k + '  ' + UI.eur(m.by[k], 0)));
+      return `<g${tip(m.tot > 0 ? tl : [MES[m.m] + ' ' + m.y, 'Sin cobros previstos'])}><rect x="${(x - gap / 2).toFixed(1)}" y="0" width="${(bw + gap).toFixed(1)}" height="${H + 20}" fill="transparent"/>${segs}<text x="${(x + bw / 2).toFixed(1)}" y="${H + 14}" text-anchor="middle" class="ax">${MES[m.m]}</text></g>`;
     }).join('');
     const total = months.reduce((s, m) => s + m.tot, 0);
     const legend = `<div class="gl">${top.map(k => `<span><i style="background:${col(k)}"></i>${UI.esc(k)}</span>`).join('')}${Object.keys(sumBy).length > top.length ? `<span><i style="background:${GREY}"></i>OTRAS</span>` : ''}</div>`;
@@ -59,7 +64,8 @@
     const x0 = n > 1 ? 0 : (W - bw) / 2;
     const bars = keys.map((k, i) => {
       const h = g[k] / max * (H - 18), x = x0 + i * (bw + gap);
-      return `<rect x="${x.toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${PAL[1]}"/><text x="${(x + bw / 2).toFixed(1)}" y="${H + 14}" text-anchor="middle" class="ax">${k.replace(/^\d{2}/, '')}</text>`;
+      const np = paid.filter(d => key(d) === k).length;
+      return `<g${tip([k + ' · ' + UI.eur(g[k], 0), np + (np === 1 ? ' pago' : ' pagos')])}><rect x="${(x - 4).toFixed(1)}" y="0" width="${(bw + 8).toFixed(1)}" height="${H + 20}" fill="transparent"/><rect x="${x.toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${PAL[1]}"/><text x="${(x + bw / 2).toFixed(1)}" y="${H + 14}" text-anchor="middle" class="ax">${k.replace(/^\d{2}/, '')}</text></g>`;
     }).join('');
     const gy = st.cobrada === 'year' && goal ? H - goal / max * (H - 18) : null;
     const line = gy != null ? `<line x1="0" x2="${W}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="${PAL[0]}" stroke-dasharray="5 5" stroke-width="2"/><text x="${W - 2}" y="${(gy - 4).toFixed(1)}" text-anchor="end" class="ax" fill="${PAL[0]}">OBJETIVO ${UI.eur(goal, 0)}</text>` : '';
@@ -107,9 +113,10 @@
     const path = arr => arr.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
     const fin = mine[mine.length - 1].idx - 100, fb = bm ? bm[bm.length - 1] - 100 : null;
     const sg = v => (v >= 0 ? '+' : '−') + UI.fnum(Math.abs(v), 1) + '%';
-    const svg = `<svg viewBox="0 0 ${W} ${H}" class="gsvg" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${y(100).toFixed(1)}" y2="${y(100).toFixed(1)}" stroke="var(--line2)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
+    lines.vs = { dates: pts.map(p => p.d), a: mine.map(p => p.idx), b: bm, name: bmName };
+    const svg = `<svg viewBox="0 0 ${W} ${H}" class="gsvg" data-lc="vs" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${y(100).toFixed(1)}" y2="${y(100).toFixed(1)}" stroke="var(--line2)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
       ${bm ? `<path d="${path(bm)}" fill="none" stroke="${PAL[1]}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` : ''}
-      <path d="${path(mine.map(p => p.idx))}" fill="none" stroke="${PAL[0]}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+      <path d="${path(mine.map(p => p.idx))}" fill="none" stroke="${PAL[0]}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/><line id="lcx" x1="0" x2="0" y1="0" y2="${H}" stroke="#e8f1ef" stroke-width="1" vector-effect="non-scaling-stroke" visibility="hidden"/></svg>`;
     const leg = `<div class="gl"><span><i style="background:${PAL[0]}"></i>TU CARTERA <b class="${fin >= 0 ? 'up' : 'down'}">${sg(fin)}</b></span>${bm ? `<span><i style="background:${PAL[1]}"></i>${bmName} <b>${sg(fb)}</b></span>` : ''}</div>`;
     const note = bm ? `Rentabilidad sin contar lo que aportas o retiras. ${fin >= fb ? 'Vas por delante' : 'Vas por detrás'} del ${bmName} en este periodo (${sg(fin - fb)} de diferencia). El índice se mide en su divisa, sin cambio a euros.` : `Todavía no hay datos del ${bmName}: se descargan con la próxima actualización de precios (tira de la pantalla hacia abajo).`;
     return card('FRENTE A UN ÍNDICE', 'Tu cartera y el índice, empezando los dos en 100.', ctl + `<div class="gcard">${svg}${leg}<div class="muted" style="font-size:11px;margin-top:6px">${note}</div></div>`);
@@ -124,7 +131,7 @@
     const max = Math.max(1e-9, ...list.map(r => Math.abs(val(r))));
     const body = list.map(r => {
       const v = val(r), w = Math.abs(v) / max * 50, up = v >= 0;
-      return `<div class="gr" data-id="${UI.esc(r.a.id)}"><span class="tk">${UI.esc(r.a.ticker)}</span><div class="gt"><i class="${up ? 'p' : 'n'}" style="width:${w.toFixed(1)}%"></i></div><b class="${up ? 'up' : 'down'}">${st.win === 'pct' ? UI.sPct(r.plPct) : UI.sEur(r.pl, 0)}</b></div>`;
+      return `<div class="gr" data-id="${UI.esc(r.a.id)}"${tip([r.a.ticker + ' · ' + (r.a.name || ''), 'P/L ' + UI.sEur(r.pl, 0) + ' (' + UI.sPct(r.plPct) + ')', 'Valor ' + UI.eur(r.value, 0), 'Coste ' + UI.eur(r.p.costEur, 0)])}><span class="tk">${UI.esc(r.a.ticker)}</span><div class="gt"><i class="${up ? 'p' : 'n'}" style="width:${w.toFixed(1)}%"></i></div><b class="${up ? 'up' : 'down'}">${st.win === 'pct' ? UI.sPct(r.plPct) : UI.sEur(r.pl, 0)}</b></div>`;
     }).join('');
     return card('GANADORES Y PERDEDORES', 'P/L latente de cada posición, de mejor a peor.', seg('win', st.win, [['eur', 'EN €'], ['pct', 'EN %']]) + `<div class="gcard">${body || '<div class="muted">Sin posiciones.</div>'}</div>`);
   }
@@ -134,7 +141,7 @@
     const UI = U();
     const fc = window.Divs.forecast(rows.filter(r => r.a.type !== 'crypto'));
     const max = Math.max(1, ...fc.by.map(b => b.net));
-    const body = fc.by.map(b => `<div class="gr" data-id="${UI.esc(b.a.id)}"><span class="tk">${UI.esc(b.a.ticker)}</span><div class="gt one"><i class="y" style="width:${(b.net / max * 100).toFixed(1)}%"></i></div><b class="yellow">${UI.eur(b.net, 0)}</b><em class="sm">${UI.fnum(b.net / (fc.net || 1) * 100, 0)}% · yield ${UI.fnum(b.yld * 100, 1)}% · YoC ${UI.fnum(b.yoc * 100, 1)}%</em></div>`).join('');
+    const body = fc.by.map(b => `<div class="gr" data-id="${UI.esc(b.a.id)}"${tip([b.a.ticker + ' · ' + (b.a.name || ''), 'Neto/año ' + UI.eur(b.net, 0), 'Bruto/año ' + UI.eur(b.gross, 0), 'Yield ' + UI.fnum(b.yld * 100, 1) + '%  YoC ' + UI.fnum(b.yoc * 100, 1) + '%'])}><span class="tk">${UI.esc(b.a.ticker)}</span><div class="gt one"><i class="y" style="width:${(b.net / max * 100).toFixed(1)}%"></i></div><b class="yellow">${UI.eur(b.net, 0)}</b><em class="sm">${UI.fnum(b.net / (fc.net || 1) * 100, 0)}% · yield ${UI.fnum(b.yld * 100, 1)}% · YoC ${UI.fnum(b.yoc * 100, 1)}%</em></div>`).join('');
     return card('RENTA POR EMPRESA', `Quién aporta tu renta prevista de <b class="yellow">${UI.eur(fc.net, 0)}</b> netos al año.`, `<div class="gcard">${body || '<div class="muted">Sin dividendos previstos.</div>'}</div>`);
   }
 
@@ -162,7 +169,7 @@
         const k = y + '-' + String(i + 1).padStart(2, '0'), f = m[k];
         if (f == null) return '<span class="e"></span>';
         any = true; tot *= f; const p = (f - 1) * 100;
-        return `<span style="background:${heatColor(p)}">${UI.fnum(Math.abs(p), Math.abs(p) >= 10 ? 0 : 1).replace(',0', '')}</span>`;
+        return `<span${tip([MES[i] + ' ' + y, (p >= 0 ? '+' : '−') + UI.fnum(Math.abs(p), 2) + '% en el mes'])} style="background:${heatColor(p)}">${UI.fnum(Math.abs(p), Math.abs(p) >= 10 ? 0 : 1).replace(',0', '')}</span>`;
       }).join('');
       const py = (tot - 1) * 100;
       return `<div class="hm"><b>${y.slice(2)}</b>${cells}<span class="yr" style="color:${py >= 0 ? 'var(--green)' : 'var(--red)'}">${any ? (py >= 0 ? '+' : '−') + UI.fnum(Math.abs(py), 0) : ''}</span></div>`;
@@ -181,5 +188,50 @@
     app.querySelectorAll('[data-grng]').forEach(b => b.onclick = () => { st.range = b.dataset.grng; rerender(); });
     app.querySelectorAll('[data-gwin]').forEach(b => b.onclick = () => { st.win = b.dataset.gwin; rerender(); });
   }
-  window.Charts = { render, bind, BENCH };
+
+  // ---------- Cuadro de info al pasar el dedo (como en la gráfica de Inicio) ----------
+  let box = null;
+  function showTip(lines, x, y) {
+    if (!box) { box = document.createElement('div'); box.className = 'gtip'; document.body.appendChild(box); }
+    const UI = U();
+    box.innerHTML = lines.map((l, i) => i === 0 ? `<b>${UI.esc(l)}</b>` : `<span>${UI.esc(l)}</span>`).join('');
+    box.style.display = 'block';
+    const w = box.offsetWidth, h = box.offsetHeight;
+    let left = Math.max(8, Math.min(innerWidth - w - 8, x - w / 2));
+    let top = y - h - 28; if (top < 70) top = y + 36;
+    box.style.left = left + 'px'; box.style.top = top + 'px';
+  }
+  const hideTip = () => { if (box) box.style.display = 'none'; document.querySelectorAll('#lcx').forEach(l => l.setAttribute('visibility', 'hidden')); };
+  function lineTip(svg, cx, cy) {
+    const L = lines[svg.dataset.lc]; if (!L) return false;
+    const r = svg.getBoundingClientRect(), n = L.dates.length;
+    const i = Math.max(0, Math.min(n - 1, Math.round((cx - r.left) / r.width * (n - 1))));
+    const X = i / (n - 1) * 360, ln = svg.querySelector('#lcx');
+    ln.setAttribute('x1', X); ln.setAttribute('x2', X); ln.setAttribute('visibility', 'visible');
+    const sg = v => (v >= 0 ? '+' : '−') + U().fnum(Math.abs(v), 1) + '%';
+    const out = [U().fdate(L.dates[i]), 'Tu cartera ' + sg(L.a[i] - 100)];
+    if (L.b) out.push(L.name + ' ' + sg(L.b[i] - 100));
+    showTip(out, cx, cy);
+    return true;
+  }
+  function tips(root) {
+    if (root.__tips) return; root.__tips = true;
+    let on = false;
+    const at = (cx, cy) => {
+      const el = document.elementFromPoint(cx, cy); if (!el) return hideTip();
+      const lc = el.closest && el.closest('[data-lc]');
+      if (lc) return lineTip(lc, cx, cy);
+      const t = el.closest && el.closest('[data-tip]');
+      if (t) { document.querySelectorAll('#lcx').forEach(l => l.setAttribute('visibility', 'hidden')); showTip(t.dataset.tip.split('|'), cx, cy); } else hideTip();
+    };
+    const pt = e => e.touches ? e.touches[0] : e;
+    const sel = '[data-tip],[data-lc]';
+    root.addEventListener('touchstart', e => { if (e.target.closest(sel)) { on = true; const p = pt(e); at(p.clientX, p.clientY); } }, { passive: true });
+    root.addEventListener('touchmove', e => { if (on) { const p = pt(e); at(p.clientX, p.clientY); } }, { passive: true });
+    ['touchend', 'touchcancel'].forEach(ev => root.addEventListener(ev, () => { on = false; setTimeout(hideTip, 900); }));
+    root.addEventListener('mousemove', e => { if (e.target.closest && e.target.closest(sel)) at(e.clientX, e.clientY); else hideTip(); });
+    root.addEventListener('mouseleave', hideTip);
+    window.addEventListener('scroll', hideTip, { passive: true });
+  }
+  window.Charts = { render, bind, BENCH, tips, tip };
 })();
