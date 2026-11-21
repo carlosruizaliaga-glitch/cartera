@@ -4,7 +4,7 @@
   const S = window.Store, M = window.Market, C = window.Calc;
   const U = () => window.UI;
   const COLORS = ['var(--green)', 'var(--yellow)', 'var(--cyan)', 'var(--purple)', 'var(--orange)', 'var(--red)', '#e8f1ef', '#6f8fa6', '#e59ac6', '#9fe3d3', '#93a8a6'];
-  const st = { view: 'dist', dim: 'sector', year: null };
+  const st = { view: 'dist', dim: 'sector', year: null, mapa: 'peso', col: 'day', scale: 'lin' };
   const settings = () => S.get('settings') || { withholding: {}, rules: {} };
   const rules = () => Object.assign({ maxPerCompany: 7, maxHighYield: 5, maxCrypto: 5 }, settings().rules || {});
   const addMonths = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); };
@@ -194,21 +194,90 @@
       <div class="muted" style="font-size:11px;margin-top:16px">Resumen orientativo calculado con tus apuntes (FIFO, cambio BCE de cada operación). No sustituye al informe fiscal del broker.</div>`;
   }
 
+  // ---------- Mapa (treemap tipo Finviz) ----------
+  function squarify(items, X, Y, W, H) {
+    const tot = items.reduce((s, i) => s + i.v, 0), out = [];
+    if (!tot || W <= 0 || H <= 0) return out;
+    const its = items.map(i => Object.assign({}, i, { a: i.v / tot * W * H })).sort((p, q) => q.a - p.a);
+    let x = X, y = Y, w = W, h = H, row = [];
+    const worst = (r, side) => { const sm = r.reduce((s, i) => s + i.a, 0), mx = r[0].a, mn = r[r.length - 1].a; return Math.max(side * side * mx / (sm * sm), sm * sm / (side * side * mn)); };
+    const layout = r => {
+      const sm = r.reduce((s, i) => s + i.a, 0);
+      if (w >= h) { const cw = sm / h; let cy = y; r.forEach(i => { const ch = i.a / cw; out.push(Object.assign(i, { x, y: cy, w: cw, h: ch })); cy += ch; }); x += cw; w -= cw; }
+      else { const ch = sm / w; let cx = x; r.forEach(i => { const cw = i.a / ch; out.push(Object.assign(i, { x: cx, y, w: cw, h: ch })); cx += cw; }); y += ch; h -= ch; }
+    };
+    its.forEach(i => {
+      const side = Math.min(w, h);
+      if (!row.length || worst(row.concat(i), side) <= worst(row, side)) row.push(i);
+      else { layout(row); row = [i]; }
+    });
+    if (row.length) layout(row);
+    return out;
+  }
+  // p en "puntos": -3 rojo pleno, 0 neutro, +3 verde pleno
+  const tileColor = p => {
+    const t = Math.max(-1, Math.min(1, (p || 0) / 3)), k = Math.abs(t);
+    const n = [38, 55, 58], tgt = t >= 0 ? [20, 163, 127] : [214, 69, 77];
+    const c = n.map((v, i) => Math.round(v + (tgt[i] - v) * (k ? 0.3 + 0.7 * k : 0)));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  };
+  function renderMapa(rows) {
+    const UI = U(), M = window.Market;
+    const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+    const byCap = st.mapa === 'cap';
+    const sc = v => st.scale === 'sqrt' ? Math.sqrt(v) : v;
+    const items = [], missing = [];
+    rows.forEach(r => {
+      if (r.value == null) return;
+      let size = r.value;
+      if (byCap) {
+        const inf = r.a.yahoo && M.info(r.a.yahoo);
+        const rate = (r.q && M.rate(r.q.currency)) || 1;
+        const cap = r.a.type === 'crypto' ? (r.q && r.q.mcap) : (inf && inf.marketCap ? inf.marketCap / rate : null);
+        if (!cap) { missing.push(r.a.ticker); return; }
+        size = cap;
+      }
+      const chg = st.col === 'pl' ? (r.plPct != null ? r.plPct * 10 : 0) : (r.dayPct != null ? r.dayPct * 100 : 0);
+      items.push({ v: sc(size), r, size, chg });
+    });
+    const W = 360, H = 380;
+    const tiles = squarify(items, 0, 0, W, H);
+    const lbl = i => { const dp = st.col === 'pl' ? i.r.plPct : i.r.dayPct; return dp == null ? '' : (dp >= 0 ? '+' : '−') + UI.fnum(Math.abs(dp) * 100, 1) + '%'; };
+    const html = tiles.map(t => {
+      const big = t.w > 54 && t.h > 36, mid = t.w > 30 && t.h > 20;
+      const sub = byCap ? UI.fnum(t.size / 1e9, t.size >= 1e10 ? 0 : 1) + ' mil M' : UI.fnum(t.size / (total || 1) * 100, 1) + '%';
+      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${mid ? `<b style="font-size:${Math.max(9, Math.min(20, Math.sqrt(t.w * t.h) / 4.2)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
+    }).join('');
+    const btn = (k, cur, list) => `<div class="seg sm">${list.map(o => `<button data-${k}="${o[0]}" class="${cur === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
+    return `${btn('mapa', st.mapa, [['peso', 'POR PESO'], ['cap', 'POR CAPITALIZACIÓN']])}
+      ${btn('mcol', st.col, [['day', 'COLOR: HOY'], ['pl', 'COLOR: P/L']])}
+      ${byCap ? btn('mscale', st.scale, [['lin', 'ESCALA REAL'], ['sqrt', 'ESCALA SUAVE']]) : ''}
+      <div class="tm">${html || '<div class="soon">SIN DATOS</div>'}</div>
+      <div class="tmleg"><i style="background:${tileColor(-3)}"></i>−3%<i style="background:${tileColor(0)}"></i>0<i style="background:${tileColor(3)}"></i>+3%<span>${st.col === 'pl' ? 'P/L latente (±30 % satura)' : 'Cambio de hoy'}</span></div>
+      <div class="muted" style="font-size:11.5px;margin-top:8px">${byCap
+        ? 'El tamaño de cada cuadro es el valor de mercado de la empresa (lo que vale entera en bolsa), no tu dinero: así ves en qué tamaño de compañía estás.' + (st.scale === 'sqrt' ? ' Escala suave: se comprime la diferencia para que las pequeñas se vean.' : '')
+        : 'El tamaño de cada cuadro es lo que pesa la posición en tu cartera.'}${missing.length ? `<br>Sin dato de capitalización: ${missing.map(UI.esc).join(', ')}.` : ''}</div>`;
+  }
+
   // ---------- Pantalla ----------
   function render() {
     const UI = U();
     const rows = UI.model().rows;
-    const body = st.view === 'dist' ? renderDist(rows) : st.view === 'rules' ? renderRules(rows) : renderFiscal();
+    const body = st.view === 'dist' ? renderDist(rows) : st.view === 'rules' ? renderRules(rows) : st.view === 'mapa' ? renderMapa(rows) : renderFiscal();
     const R = rules(), tot = rows.reduce((s, r) => s + (r.value || 0), 0);
     const nBad = (rows.some(r => tot && r.value / tot * 100 > R.maxPerCompany) ? 1 : 0)
       + (rows.filter(r => r.a.highYield).reduce((s, r) => s + r.value, 0) / (tot || 1) * 100 > R.maxHighYield ? 1 : 0)
       + (rows.filter(r => r.a.type === 'crypto').reduce((s, r) => s + r.value, 0) / (tot || 1) * 100 > R.maxCrypto ? 1 : 0);
     UI.shell(`
-      <div class="seg">${[['dist', 'DISTRIBUCIÓN'], ['rules', 'REGLAS' + (nBad ? ' · ' + nBad : '')], ['fiscal', 'FISCAL']].map(o =>
+      <div class="seg">${[['dist', 'DISTRIBUCIÓN'], ['mapa', 'MAPA'], ['rules', 'REGLAS' + (nBad ? ' · ' + nBad : '')], ['fiscal', 'FISCAL']].map(o =>
         `<button data-av="${o[0]}" class="${st.view === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>
       ${body}`);
     const app = document.getElementById('app');
     app.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { st.view = b.dataset.av; UI.render(); });
+    app.querySelectorAll('[data-mapa]').forEach(b => b.onclick = () => { st.mapa = b.dataset.mapa; UI.render(); });
+    app.querySelectorAll('[data-mcol]').forEach(b => b.onclick = () => { st.col = b.dataset.mcol; UI.render(); });
+    app.querySelectorAll('[data-mscale]').forEach(b => b.onclick = () => { st.scale = b.dataset.mscale; UI.render(); });
+    app.querySelectorAll('.tile[data-id]').forEach(el => el.onclick = () => UI.openAsset(el.dataset.id));
     app.querySelectorAll('[data-dim]').forEach(b => b.onclick = () => { st.dim = b.dataset.dim; UI.render(); });
     app.querySelectorAll('[data-fy]').forEach(b => b.onclick = () => { st.year = +b.dataset.fy; UI.render(); });
     app.querySelectorAll('[data-id]').forEach(el => el.onclick = () => el.dataset.id && UI.openAsset(el.dataset.id));

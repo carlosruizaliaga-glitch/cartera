@@ -65,6 +65,7 @@ try {
   await clic('[data-tab=cartera]'); { const t = await textoPantalla(); check('Inicio con KPIs, rendimiento y conclusiones', ['RENTA/AÑO', 'YIELD', 'RENDIMIENTO', 'CONCLUSIONES'].every(x => t.includes(x))); }
   await clic('[data-tab=analisis]');
   await clic('[data-av=rules]'); check('Análisis → REGLAS', (await textoPantalla()).includes('PESO POR EMPRESA'));
+  await clic('[data-av=mapa]'); { const n = await page.$$eval('.tile', e => e.length); const o = await overflow(); check('Análisis → MAPA con cuadros de peso', n >= 5 && o.n === 0); await clic('[data-mapa=cap]'); const n2 = await page.$$eval('.tile', e => e.length); check('MAPA por capitalización', n2 >= 3); await clic('[data-mapa=peso]'); }
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
   for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'telegram', 'seg', 'app']) {

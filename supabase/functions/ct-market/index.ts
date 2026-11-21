@@ -121,7 +121,7 @@ async function coinQuotes(ids: string[]) {
     const chg = c.price_change_percentage_24h;
     out[c.id] = {
       price: c.current_price, prev: chg != null ? c.current_price / (1 + chg / 100) : null, currency: 'EUR',
-      name: c.name, image: c.image, high52: null, low52: null,
+      name: c.name, image: c.image, mcap: c.market_cap ?? null, high52: null, low52: null,
       time: c.last_updated ? Date.parse(c.last_updated) : Date.now(),
     };
   }
