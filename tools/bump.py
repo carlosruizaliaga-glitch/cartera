@@ -10,7 +10,7 @@ if subprocess.run(['node', os.path.join(os.path.dirname(os.path.abspath(__file__
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 v = dt.datetime.now().strftime('%Y-%m-%d %H:%M')
 files = ['./', 'index.html', 'app.js', 'store.js', 'market.js', 'calc.js', 'forms.js', 'dividends.js', 'screens.js',
-         'analysis.js', 'xlsx.js', 'settings.js', 'version.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png',
+         'analysis.js', 'graficas.js', 'xlsx.js', 'settings.js', 'version.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png',
          'icon-512.png', 'icon-maskable.png']
 open(os.path.join(root, 'version.js'), 'w', encoding='utf-8').write(
     f"window.APP_VERSION = {json.dumps(v)};\nwindow.APP_FILES = {json.dumps(files)};\n")

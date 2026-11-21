@@ -4,7 +4,7 @@
   const S = window.Store, M = window.Market, C = window.Calc;
   const U = () => window.UI;
   const COLORS = ['var(--green)', 'var(--yellow)', 'var(--cyan)', 'var(--purple)', 'var(--orange)', 'var(--red)', '#e8f1ef', '#6f8fa6', '#e59ac6', '#9fe3d3', '#93a8a6'];
-  const st = { view: 'dist', dim: 'sector', year: null, mapa: 'peso', col: 'day', scale: 'lin' };
+  const st = { view: 'dist', dim: 'sector', year: null, mapa: 'peso', col: 'day', scale: 'lin', grp: 'none' };
   const settings = () => S.get('settings') || { withholding: {}, rules: {} };
   const rules = () => Object.assign({ maxPerCompany: 7, maxHighYield: 5, maxCrypto: 5 }, settings().rules || {});
   const addMonths = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); };
@@ -241,18 +241,26 @@
       items.push({ v: sc(size), r, size, chg });
     });
     const W = 360, H = 380;
-    const tiles = squarify(items, 0, 0, W, H);
+    let tiles, groups = [];
+    if (st.grp !== 'none') {
+      const gm = {};
+      items.forEach(i => { const k = keyOf(i.r, st.grp); (gm[k] = gm[k] || { k, v: 0, items: [] }).v += i.v; gm[k].items.push(i); });
+      const gl = squarify(Object.values(gm), 0, 0, W, H);
+      tiles = []; groups = gl;
+      gl.forEach(g => { const hd = g.h > 40 && g.w > 50 ? 14 : 0; tiles.push(...squarify(g.items, g.x, g.y + hd, g.w, g.h - hd)); });
+    } else tiles = squarify(items, 0, 0, W, H);
     const lbl = i => { const dp = st.col === 'pl' ? i.r.plPct : i.r.dayPct; return dp == null ? '' : (dp >= 0 ? '+' : '−') + UI.fnum(Math.abs(dp) * 100, 1) + '%'; };
     const html = tiles.map(t => {
       const big = t.w > 54 && t.h > 36, mid = t.w > 30 && t.h > 20, named = t.w > 62 && t.h > 62;
       const sub = byCap ? UI.fnum(t.size / 1e9, t.size >= 1e10 ? 0 : 1) + ' mil M' : UI.fnum(t.size / (total || 1) * 100, 1) + '%';
-      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${mid ? `<b style="font-size:${Math.max(9, Math.min(20, Math.sqrt(t.w * t.h) / 4.2)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${named ? `<i class="nm">${UI.esc(t.r.a.name || '')}</i>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
+      return `<div class="tile" data-id="${UI.esc(t.r.a.id)}" style="left:${(t.x / W * 100).toFixed(3)}%;top:${(t.y / H * 100).toFixed(3)}%;width:${(t.w / W * 100).toFixed(3)}%;height:${(t.h / H * 100).toFixed(3)}%;background:${tileColor(t.chg)}">${mid ? `<b style="font-size:${Math.max(8, Math.min(20, Math.sqrt(t.w * t.h) / 4.2, t.h * 0.5)).toFixed(1)}px">${UI.esc(t.r.a.ticker)}</b>` : ''}${named ? `<i class="nm">${UI.esc(t.r.a.name || '')}</i>` : ''}${big ? `<span>${lbl(t)}</span><em>${sub}</em>` : ''}</div>`;
     }).join('');
     const btn = (k, cur, list) => `<div class="seg sm">${list.map(o => `<button data-${k}="${o[0]}" class="${cur === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
     return `${btn('mapa', st.mapa, [['peso', 'POR PESO'], ['cap', 'POR CAPITALIZACIÓN']])}
+      ${btn('mgrp', st.grp, [['none', 'SIN GRUPOS'], ['sector', 'POR SECTOR'], ['pais', 'POR PAÍS']])}
       ${btn('mcol', st.col, [['day', 'COLOR: HOY'], ['pl', 'COLOR: P/L']])}
       ${byCap ? btn('mscale', st.scale, [['lin', 'ESCALA REAL'], ['sqrt', 'ESCALA SUAVE']]) : ''}
-      <div class="tm">${html || '<div class="soon">SIN DATOS</div>'}</div>
+      <div class="tm">${groups.map(g => g.h > 40 && g.w > 50 ? `<div class="tgrp" style="left:${(g.x / W * 100).toFixed(3)}%;top:${(g.y / H * 100).toFixed(3)}%;width:${(g.w / W * 100).toFixed(3)}%">${UI.esc(g.k)}</div>` : '').join('')}${html || '<div class="soon">SIN DATOS</div>'}</div>
       <div class="tmleg"><i style="background:${tileColor(-3)}"></i>−3%<i style="background:${tileColor(0)}"></i>0<i style="background:${tileColor(3)}"></i>+3%<span>${st.col === 'pl' ? 'P/L latente (±30 % satura)' : 'Cambio de hoy'}</span></div>
       <div class="muted" style="font-size:11.5px;margin-top:8px">${byCap
         ? 'El tamaño de cada cuadro es el valor de mercado de la empresa (lo que vale entera en bolsa), no tu dinero: así ves en qué tamaño de compañía estás.' + (st.scale === 'sqrt' ? ' Escala suave: se comprime la diferencia para que las pequeñas se vean.' : '')
@@ -263,17 +271,19 @@
   function render() {
     const UI = U();
     const rows = UI.model().rows;
-    const body = st.view === 'dist' ? renderDist(rows) : st.view === 'rules' ? renderRules(rows) : st.view === 'mapa' ? renderMapa(rows) : renderFiscal();
+    const body = st.view === 'dist' ? renderDist(rows) : st.view === 'rules' ? renderRules(rows) : st.view === 'mapa' ? renderMapa(rows) : st.view === 'graf' ? window.Charts.render(rows) : renderFiscal();
     const R = rules(), tot = rows.reduce((s, r) => s + (r.value || 0), 0);
     const nBad = (rows.some(r => tot && r.value / tot * 100 > R.maxPerCompany) ? 1 : 0)
       + (rows.filter(r => r.a.highYield).reduce((s, r) => s + r.value, 0) / (tot || 1) * 100 > R.maxHighYield ? 1 : 0)
       + (rows.filter(r => r.a.type === 'crypto').reduce((s, r) => s + r.value, 0) / (tot || 1) * 100 > R.maxCrypto ? 1 : 0);
     UI.shell(`
-      <div class="seg">${[['dist', 'DISTRIBUCIÓN'], ['mapa', 'MAPA'], ['rules', 'REGLAS' + (nBad ? ' · ' + nBad : '')], ['fiscal', 'FISCAL']].map(o =>
+      <div class="seg five">${[['dist', 'DISTRIBUCIÓN'], ['mapa', 'MAPA'], ['graf', 'GRÁFICAS'], ['rules', 'REGLAS' + (nBad ? ' · ' + nBad : '')], ['fiscal', 'FISCAL']].map(o =>
         `<button data-av="${o[0]}" class="${st.view === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>
       ${body}`);
     const app = document.getElementById('app');
     app.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { st.view = b.dataset.av; UI.render(); });
+    if (window.Charts) window.Charts.bind(app, () => UI.render());
+    app.querySelectorAll('[data-mgrp]').forEach(b => b.onclick = () => { st.grp = b.dataset.mgrp; UI.render(); });
     app.querySelectorAll('[data-mapa]').forEach(b => b.onclick = () => { st.mapa = b.dataset.mapa; UI.render(); });
     app.querySelectorAll('[data-mcol]').forEach(b => b.onclick = () => { st.col = b.dataset.mcol; UI.render(); });
     app.querySelectorAll('[data-mscale]').forEach(b => b.onclick = () => { st.scale = b.dataset.mscale; UI.render(); });

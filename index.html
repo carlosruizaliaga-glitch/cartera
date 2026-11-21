@@ -514,6 +514,20 @@ html[data-priv=on] input[inputmode=decimal],html[data-priv=on] input[inputmode=n
 .tile b{font-family:var(--mono,monospace);font-weight:800;letter-spacing:-.02em}.tile span{font:600 11px var(--mono,monospace)}.tile em{font:500 9.5px var(--mono,monospace);font-style:normal;opacity:.8}
 .tmleg{display:flex;align-items:center;gap:6px;margin-top:8px;font:600 10.5px var(--mono,monospace);color:var(--muted)}.tmleg i{width:26px;height:10px;border-radius:3px;display:inline-block}.tmleg span{margin-left:auto}
 .tile i.nm{font:500 9.5px var(--sans,Inter,sans-serif);font-style:normal;opacity:.88;max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg.five button{font-size:9.5px;padding:10px 1px;letter-spacing:0}
+.gcard{background:linear-gradient(180deg,var(--card,#111b1d),var(--card2,#0e1618));border:1px solid var(--line2);border-radius:16px;padding:12px 14px;margin-bottom:10px}
+.gsvg{width:100%;height:auto;display:block;overflow:visible}.gsvg .ax{font:600 9.5px var(--mono,monospace);fill:var(--muted)}
+.gl{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font:600 10.5px var(--mono,monospace);color:var(--muted)}.gl i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.rowsc{padding:4px 14px}.grow{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2);font:600 12px var(--mono,monospace)}.grow:last-child{border:0}
+.grow .mu{flex:1;color:var(--muted);font-weight:500;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gr{display:grid;grid-template-columns:54px 1fr 78px;gap:8px;align-items:center;padding:6px 0;font:600 11.5px var(--mono,monospace);cursor:pointer}
+.gr .tk{color:var(--fg)}.gr b{text-align:right}.gr em.sm{grid-column:2/4;font:500 10px var(--mono,monospace);font-style:normal;color:var(--muted);margin-top:-4px}
+.gt{height:8px;border-radius:8px;background:var(--line);position:relative}.gt:after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--dim)}
+.gt.one:after{display:none}.gt i{position:absolute;top:0;bottom:0;border-radius:8px}.gt i.p{left:50%;background:var(--green)}.gt i.n{right:50%;background:var(--red)}.gt i.y{left:0;background:var(--yellow)}
+.hmc{padding:10px 8px}.hm{display:grid;grid-template-columns:20px repeat(12,minmax(0,1fr)) 38px;gap:2px;align-items:center;margin-bottom:3px}
+.hm span,.hm b{font:600 9px var(--mono,monospace);text-align:center;color:#fff;border-radius:4px;padding:6px 0;min-width:0}.hm b{color:var(--muted);padding:0}.hm .e{background:var(--line);opacity:.5}
+.hm.hh span{color:var(--muted);padding:0}.hm .yr{background:none;font-weight:700;padding:0;text-align:right}
+.tgrp{position:absolute;z-index:2;box-sizing:border-box;padding:2px 5px;font:700 9px var(--mono,monospace);letter-spacing:.06em;color:rgba(255,255,255,.85);background:rgba(0,0,0,.35);pointer-events:none;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:12px;height:14px}
 </style>
 </head>
 <body>
@@ -527,6 +541,7 @@ html[data-priv=on] input[inputmode=decimal],html[data-priv=on] input[inputmode=n
   <script src="dividends.js"></script>
   <script src="screens.js"></script>
   <script src="analysis.js"></script>
+  <script src="graficas.js"></script>
   <script src="xlsx.js"></script>
   <script src="settings.js"></script>
   <script>

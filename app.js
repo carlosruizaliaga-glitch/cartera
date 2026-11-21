@@ -572,7 +572,9 @@
       info = held.filter(a => a.type !== 'crypto' && a.yahoo).map(a => a.yahoo);
       setPref('infoAt', Date.now());
     }
-    return M.refresh({ assets: held, histAssets: withTx, from: first, force, info });
+    // Índices de referencia para la gráfica "frente a un índice"
+    const bench = (window.Charts ? window.Charts.BENCH : [['^GSPC'], ['URTH']]).map(b => ({ id: 'bm-' + b[0], ticker: b[0], yahoo: b[0], type: 'stock', currency: 'USD' }));
+    return M.refresh({ assets: held, histAssets: withTx.concat(bench), from: first, force, info });
   }
 
   // ---------- Tirar para refrescar ----------
@@ -879,7 +881,7 @@
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.loggedIn()) refreshMarket(false); });
 
-  window.UI = { buildDigest, sendDigest, theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
+  window.UI = { seriesFor, buildDigest, sendDigest, theme, navigate, goBack, ui, bio: { get: getBio, save: saveBio, available: bioAvailable, enroll: bioEnroll }, pin: { get: getPin, save: savePin, make: makePin, check: checkPin }, priv: () => PRIV, upd, hasUpdate, checkUpdate, applyUpdate, shell, fnum, eur, sEur, sPct, cls, price, qtyFmt, fdate, today, esc, initials, toast, sheet, model, logoHtml, render, openAsset, refreshMarket };
   render();
   document.addEventListener('DOMContentLoaded', () => { if (!window.Divs || S.loggedIn()) render(); });
   autoLockCheck();
