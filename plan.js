@@ -125,20 +125,35 @@
   function alerts(rows, total) {
     const UI = U(), out = [], R = Object.assign({ maxPerCompany: 7, maxHighYield: 5, maxCrypto: 5 }, settings().rules || {});
     rows.filter(r => r.a.type !== 'crypto' && total && r.value / total * 100 > R.maxPerCompany * 1.5).slice(0, 2)
-      .forEach(r => out.push({ lvl: 'r', html: `<b>${esc(r.a.ticker)}</b> pesa un ${UI.fnum(r.value / total * 100, 1)}%, más del doble de tu límite razonable (${UI.fnum(R.maxPerCompany, 0)}%).` }));
+      .forEach(r => out.push({ id: 'peso-' + r.a.ticker, lvl: 'r', txt: `${r.a.ticker} pesa un ${UI.fnum(r.value / total * 100, 1)}% de la cartera, más del doble de tu límite.`, html: `<b>${esc(r.a.ticker)}</b> pesa un ${UI.fnum(r.value / total * 100, 1)}%, más del doble de tu límite razonable (${UI.fnum(R.maxPerCompany, 0)}%).` }));
     const crW = total ? rows.filter(r => r.a.type === 'crypto').reduce((s, r) => s + (r.value || 0), 0) / total * 100 : 0;
-    if (crW > R.maxCrypto) out.push({ lvl: 'y', html: `Cripto al <b>${UI.fnum(crW, 1)}%</b> (tu máximo es ${UI.fnum(R.maxCrypto, 0)}%).` });
+    if (crW > R.maxCrypto) out.push({ id: 'cripto', lvl: 'y', txt: `Cripto al ${UI.fnum(crW, 1)}% (tu máximo es ${UI.fnum(R.maxCrypto, 0)}%).`, html: `Cripto al <b>${UI.fnum(crW, 1)}%</b> (tu máximo es ${UI.fnum(R.maxCrypto, 0)}%).` });
     Object.keys(st.health).forEach(sym => {
       const r = rows.find(x => x.a.yahoo === sym); if (!r) return;
-      const f = flags(st.health[sym]); if (f.length >= 2) out.push({ lvl: 'r', html: `<b>${esc(r.a.ticker)}</b>: riesgo para el dividendo (${esc(f.slice(0, 2).join(', '))}).` });
+      const f = flags(st.health[sym]); if (f.length >= 2) out.push({ id: 'riesgo-' + sym, lvl: 'r', txt: `${r.a.ticker}: riesgo para el dividendo (${f.slice(0, 2).join(', ')}).`, html: `<b>${esc(r.a.ticker)}</b>: riesgo para el dividendo (${esc(f.slice(0, 2).join(', '))}).` });
     });
     try {
       const sug = JSON.parse(localStorage.getItem('cartera.sug.v1') || '{}');
-      if (sug.data && window.Suggest && window.Suggest.best) { const b = window.Suggest.best(rows); if (b) out.push({ lvl: 'g', html: `Oportunidad: <b>${esc(b.c.sym)}</b> (${esc(b.c.name)}) puntúa ${b.score}/100 y ayuda a equilibrar. Mira Análisis → Sugerencias.` }); }
+      if (sug.data && window.Suggest && window.Suggest.best) { const b = window.Suggest.best(rows); if (b) out.push({ id: 'op-' + b.c.sym, lvl: 'g', txt: `Oportunidad: ${b.c.sym} puntúa ${b.score}/100 y ayuda a equilibrar tu cartera.`, html: `Oportunidad: <b>${esc(b.c.sym)}</b> (${esc(b.c.name)}) puntúa ${b.score}/100 y ayuda a equilibrar. Mira Análisis → Sugerencias.` }); }
     } catch (e) { /* sin datos */ }
     const pending = S.list('dividend').filter(d => d.status === 'pending').length;
     if (pending) out.push({ lvl: 'y', html: `Tienes <b>${pending}</b> dividendo${pending > 1 ? 's' : ''} pendiente${pending > 1 ? 's' : ''} de confirmar.` });
+    try {
+      const lb = +localStorage.getItem('cartera.lastBackup') || 0, dias = Math.floor((Date.now() - lb) / 864e5);
+      if (S.list('asset').length && (!lb || dias > 30)) out.push({ lvl: 'y', html: lb ? `Hace <b>${dias} días</b> que no haces copia de seguridad. Ajustes → Copia de seguridad.` : `Aún no has hecho <b>ninguna copia de seguridad</b>. Ajustes → Copia de seguridad.` });
+    } catch (e) { /* sin almacenamiento */ }
     return out;
+  }
+  // Alertas nuevas para avisar en el móvil: cada una se manda solo el día en que aparece por primera vez.
+  function alertEvents(rows, total) {
+    const today = new Date().toLocaleDateString('sv-SE');
+    let seen = {};
+    try { seen = JSON.parse(localStorage.getItem('cartera.alertsSeen') || '{}'); } catch (e) { seen = {}; }
+    const now = alerts(rows, total).filter(a => a.id && a.lvl !== 'y' || (a.id && a.id === 'cripto'));
+    const live = {};
+    now.forEach(a => { live[a.id] = seen[a.id] || today; });
+    try { localStorage.setItem('cartera.alertsSeen', JSON.stringify(live)); } catch (e) { /* sin almacenamiento */ }
+    return now.filter(a => live[a.id] === today).map(a => ({ t: a.id, k: 'alert', d: today, x: a.txt }));
   }
   const alertsHtml = (rows, total) => {
     const a = alerts(rows, total);
@@ -161,5 +176,5 @@
     const sr = app.querySelector('#simPct'); if (sr) sr.onchange = () => { st.simPct = +sr.value; rerender(); };
     const h = app.querySelector('#planHealth'); if (h) h.onclick = () => runHealth(rerender);
   }
-  window.Plan = { render, bind, alerts, alertsHtml, setHealth: d => { st.health = d; st.healthAt = Date.now(); } };
+  window.Plan = { render, bind, alerts, alertEvents, alertsHtml, setHealth: d => { st.health = d; st.healthAt = Date.now(); } };
 })();

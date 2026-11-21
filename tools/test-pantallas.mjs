@@ -105,6 +105,13 @@ try {
   await page.evaluate(() => document.getElementById('roBtn').click()); await sleep(500);
   check('Se sale del modo lectura', !(await page.$('#roBtn')));
   if (await page.evaluate(() => UI.priv())) await clic('#privBtn');
+  const av = await page.evaluate(() => {
+    const m = UI.model(), tot = m.rows.reduce((x, r) => x + (r.value || 0), 0);
+    localStorage.removeItem('cartera.alertsSeen');
+    const a = Plan.alertEvents(m.rows, tot), b = Plan.alertEvents(m.rows, tot);
+    return { n: a.length, same: JSON.stringify(a) === JSON.stringify(b), ok: a.every(e => e.k === 'alert' && e.x && /^\d{4}-\d\d-\d\d$/.test(e.d)) };
+  });
+  check('Alertas para el móvil: formato correcto y estables entre llamadas', av.ok && av.same);
   await clic('[data-av=fiscal]'); check('Análisis → FISCAL', (await textoPantalla()).includes('GANANCIAS Y PÉRDIDAS'));
   await clic('#setBtn');
   for (const sub of [null, 'brokers', 'ret', 'reglas', 'copia', 'sync', 'apariencia', 'telegram', 'seg', 'app']) {

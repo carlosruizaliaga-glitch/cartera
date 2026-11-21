@@ -839,6 +839,7 @@
         const inf = a.yahoo && M.info(a.yahoo);
         ((inf && inf.earnings) || []).forEach(d => { if (d >= t) out.push({ t: a.ticker, k: 'earn', d }); });
       });
+      try { if (window.Plan && window.Plan.alertEvents) out.push(...window.Plan.alertEvents(rows, total)); } catch (e) { /* sin alertas */ }
       B.saveEvents(JSON.stringify(out.filter(e => e.d <= limit)));
     } catch (e) { console.warn('native', e); }
   }
