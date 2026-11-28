@@ -32,6 +32,13 @@
     markBackup();
   }
   const stamp = () => U().today();
+  const autoOn = () => { try { return localStorage.getItem('cartera.autoBackup') === '1'; } catch (e) { return false; } };
+  // Copia automática (solo en la app de Android y si la activaste): una por semana al abrir la app.
+  function autoBackup() {
+    if (!window.AndroidBridge || !autoOn() || !S.loggedIn() || !S.list('asset').length) return;
+    if (Date.now() - lastBackup() < 7 * 864e5) return;
+    exportJson();
+  }
 
   // ---------- Tablas para exportar ----------
   function tables() {
@@ -102,7 +109,7 @@
         if (data.app !== 'cartera-carlos' || !Array.isArray(data.items)) throw new Error('no es una copia de Cartera Carlos');
         const n = data.items.filter(i => !i.deleted);
         const count = k => n.filter(i => i.kind === k).length;
-        const bg = U().sheet(`<div class="hd"><div class="t">RESTAURAR COPIA</div><button data-close>✕</button></div>
+        const bg = U().sheet(`<div class="hd"><div class="t">RESTAURAR COPIA</div><button data-close aria-label="Cerrar">✕</button></div>
           <div class="kv"><div class="k">FECHA DE LA COPIA</div><div class="v">${data.date ? U().fdate(data.date.slice(0, 10)) : '—'}</div>
           <div class="k">EMPRESAS / OPERACIONES / DIVIDENDOS</div><div class="v">${count('asset')} / ${count('tx')} / ${count('dividend')}</div></div>
           <div class="warn">Se combinará con tus datos actuales y se subirá a la nube. Si un dato existe en los dos sitios, gana la copia.</div>
@@ -120,7 +127,7 @@
   function openBroker(b) {
     const UI = U();
     const inUse = b && (S.list('tx').some(t => t.broker === b.id) || S.list('dividend').some(d => d.broker === b.id));
-    const bg = UI.sheet(`<div class="hd"><div class="t">${b ? 'EDITAR BROKER' : '+ BROKER'}</div><button data-close>✕</button></div>
+    const bg = UI.sheet(`<div class="hd"><div class="t">${b ? 'EDITAR BROKER' : '+ BROKER'}</div><button data-close aria-label="Cerrar">✕</button></div>
       <form class="f" onsubmit="return false">
         <div class="fld"><label>NOMBRE</label><input id="bn" value="${UI.esc(b ? b.name : '')}" placeholder="P. EJ. INTERACTIVE BROKERS"></div>
         <div class="grid2">
@@ -181,6 +188,8 @@
         <div class="bk2"><button id="xJson">COPIA PARA RESTAURAR</button><button id="xImp">RESTAURAR COPIA</button></div>
         <input type="file" id="impFile" accept=".json,application/json" hidden>
       </div>
+      ${window.AndroidBridge ? `<div class="bk" style="margin-top:10px"><button id="autoBk" class="${autoOn() ? 'primary' : ''}">${autoOn() ? '✓ COPIA AUTOMÁTICA SEMANAL ACTIVADA' : 'ACTIVAR COPIA AUTOMÁTICA SEMANAL'}</button></div>
+      <div class="muted" style="font-size:11px;margin-top:6px">Cada semana, al abrir la app, guarda una copia para restaurar en la carpeta Descargas. Es un archivo con tus datos: no lo compartas.</div>` : ''}
 `,
       brokers: `
       <h2><span>BROKERS</span><span class="tog" id="addB">+ AÑADIR</span></h2>
@@ -285,7 +294,7 @@
     };
     // ---------- PIN ----------
     const askPin = (title, hint) => new Promise(resolve => {
-      const bg = UI.sheet(`<div class="hd"><div class="t">${UI.esc(title)}</div><button data-close>✕</button></div>
+      const bg = UI.sheet(`<div class="hd"><div class="t">${UI.esc(title)}</div><button data-close aria-label="Cerrar">✕</button></div>
         <form class="f" onsubmit="return false"><div class="fld"><label>${UI.esc(hint)}</label>
         <input id="pinIn" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="••••"></div>
         <div class="actions"><button type="button" id="pinOk" class="primary">ACEPTAR</button></div></form>`);
@@ -326,6 +335,7 @@
     Q('#xOps').onclick = () => exportCsv('operaciones');
     Q('#xDivs').onclick = () => exportCsv('dividendos');
     Q('#xJson').onclick = exportJson;
+    const ab = Q('#autoBk'); if (ab) ab.onclick = () => { try { localStorage.setItem('cartera.autoBackup', autoOn() ? '0' : '1'); } catch (e) { /* sin almacenamiento */ } if (autoOn()) autoBackup(); U().render(); };
     Q('#xImp').onclick = () => Q('#impFile').click();
     Q('#impFile').onchange = e => importJson(e.target.files[0]);
     Q('#addB').onclick = () => openBroker(null);
@@ -343,7 +353,7 @@
     });
     Q('#goal').onchange = e => { const v = pnum(e.target.value); if (e.target.value.trim() === '') { saveSettings({ incomeGoal: 0 }); UI.toast('OBJETIVO QUITADO'); } else if (v > 0) { saveSettings({ incomeGoal: v }); UI.toast('OBJETIVO GUARDADO'); } };
     Q('#addC').onclick = () => {
-      const bg = UI.sheet(`<div class="hd"><div class="t">+ PAÍS</div><button data-close>✕</button></div>
+      const bg = UI.sheet(`<div class="hd"><div class="t">+ PAÍS</div><button data-close aria-label="Cerrar">✕</button></div>
         <form class="f" onsubmit="return false"><div class="grid2">
           <div class="fld"><label>PAÍS</label><input id="cn" placeholder="P. EJ. Noruega"></div>
           <div class="fld"><label>RETENCIÓN %</label><input id="cp" inputmode="decimal" placeholder="15"></div></div>
@@ -358,5 +368,5 @@
     Q('#logout').onclick = () => { if (S.pending()) { UI.toast('Hay cambios sin subir: conéctate primero'); return; } UI.pin.save(null); S.logout(); UI.render(); };
   }
 
-  window.SettingsScreen = { render, exportExcel, tables };
+  window.SettingsScreen = { render, exportExcel, tables, autoBackup };
 })();

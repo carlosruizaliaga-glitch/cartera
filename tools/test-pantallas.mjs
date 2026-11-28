@@ -97,6 +97,20 @@ try {
   check('Ficha de candidata con filtros y puntuación', (await textoPantalla()).includes('NOTA'));
   await page.evaluate(() => document.querySelector('[data-close]').click()); await sleep(300);
   await clic('[data-av=plan]'); { const tx = await textoPantalla(), o = await overflow(); check('Análisis → PLAN (objetivos, simulador, salud)', ['OBJETIVOS', 'SIMULADOR', 'SALUD DE TUS DIVIDENDOS'].every(x => tx.includes(x)) && o.sw <= o.w, o.n ? JSON.stringify(o.ej) : ''); }
+  // Casos límite de Sugerencias y Plan: sin posiciones, sin datos, todas descartadas, un solo valor
+  { const r = await page.evaluate(() => {
+      const out = {}, tryIt = (n, fn) => { try { const h = fn(); out[n] = typeof h === 'string' && h.length > 0 && !/NaN|undefined|Infinity/.test(h.replace(/<[^>]*>/g, ' ')); } catch (e) { out[n] = 'ERR ' + e.message; } };
+      const m = UI.model(), one = m.rows.slice(0, 1);
+      tryIt('sug vacía', () => Suggest.render([])); tryIt('plan vacío', () => Plan.render([]));
+      tryIt('sug un valor', () => Suggest.render(one)); tryIt('plan un valor', () => Plan.render(one));
+      Suggest.setData({ BAD: { sym: 'BAD', name: 'BAD', currency: 'USD', price: 10, payout: 1.6, streak: 1, cuts: 3, divYears: 2 } });
+      tryIt('sug todas descartadas', () => Suggest.render(m.rows));
+      Suggest.setData({ NOPRICE: { sym: 'NOPRICE', name: 'X', currency: 'USD', price: null } });
+      tryIt('sug sin precio', () => Suggest.render(m.rows));
+      tryIt('mejor candidata sin datos', () => { Suggest.best([]); return 'ok'; });
+      tryIt('alertas sin posiciones', () => { Plan.alerts([], 0); Plan.alertEvents([], 0); return 'ok'; });
+      return out; });
+    const malos = Object.entries(r).filter(([, v]) => v !== true && !/ok/.test(String(v))); check('Sugerencias y Plan aguantan casos límite (vacío, un valor, todo descartado, sin precio)', malos.length === 0, JSON.stringify(malos)); }
   // Modo lectura: sin botón +, formularios bloqueados, se sale sin PIN
   await page.evaluate(() => UI.setReadonly(true)); await sleep(400);
   check('Modo lectura oculta el botón + y los importes', await page.evaluate(() => getComputedStyle(document.getElementById('fab')).display === 'none' && !!document.getElementById('roBtn')));

@@ -133,7 +133,7 @@
   }
 
   function formSheet(title, color, body) {
-    const bg = U().sheet(`<div class="hd"><div class="t ${color}">${title}</div><button data-close>✕</button></div>
+    const bg = U().sheet(`<div class="hd"><div class="t ${color}">${title}</div><button data-close aria-label="Cerrar">✕</button></div>
       <form class="f" autocomplete="off" onsubmit="return false">${body}</form>`);
     bg.close = () => { bg.remove(); U().render(); };
     return bg;
@@ -649,7 +649,7 @@
   // ---------- Menú "+" ----------
   function openAdd() {
     if (U().readonly && U().readonly()) return U().toast('MODO LECTURA: no se puede editar');
-    const bg = U().sheet(`<div class="hd"><div class="t">AÑADIR</div><button data-close>✕</button></div>
+    const bg = U().sheet(`<div class="hd"><div class="t">AÑADIR</div><button data-close aria-label="Cerrar">✕</button></div>
       <div class="menu">
         <button data-k="buy"><span class="up">+ COMPRA</span><span class="s">Acciones, ETF o cripto</span></button>
         <button data-k="sell"><span class="down">− VENTA</span><span class="s">FIFO automático y regla de 2 meses</span></button>

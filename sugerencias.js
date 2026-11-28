@@ -31,6 +31,7 @@
   const store = (() => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } })();
   const st = { data: store.data || {}, at: store.at || 0, running: false, done: 0, total: 0, error: null,
     amount: +store.amount || 500, level: store.level || 'normal', showOut: false, mkt: 'all' };
+  const friendly = m => /failed to fetch|networkerror|load failed/i.test(m) ? 'Sin conexión con la nube. Comprueba internet y reintenta.' : /bad_secret|401/.test(m) ? 'La nube no reconoce tu código de acceso. Vuelve a entrar en Ajustes → Sincronización.' : /429/.test(m) ? 'Demasiadas consultas seguidas. Espera un minuto y reintenta.' : /HTTP 5|500|502|503|504/.test(m) ? 'La nube no responde ahora mismo. Reintenta en unos minutos.' : 'No se pudo completar (' + m + '). Reintenta.';
   const save = () => { try { localStorage.setItem(LS, JSON.stringify({ data: st.data, at: st.at, amount: st.amount, level: st.level })); } catch (e) { /* sin almacenamiento */ } };
   const settings = () => S.get('settings') || {};
   const esc = s => U().esc(s);
@@ -165,7 +166,7 @@
         Object.assign(st.data, d.items || {});
         st.done = Math.min(syms.length, i + batch.length); st.at = Date.now(); save(); rerender();
       }
-    } catch (e) { st.error = String(e && e.message || e); }
+    } catch (e) { st.error = friendly(String(e && e.message || e)); }
     st.running = false; save(); rerender();
   }
 
@@ -191,7 +192,7 @@
     const ctl = `<div class="gcard"><div class="f"><div class="fld" style="margin-top:0"><label>IMPORTE A INVERTIR (€)</label><input id="sugAmt" inputmode="decimal" value="${st.amount}"></div></div>
       <div class="muted" style="font-size:11px;margin:12px 0 6px">EXIGENCIA DE SOLVENCIA</div>${lvBtn}
       <div class="bk" style="margin-top:10px"><button id="sugRun" class="primary" ${st.running ? 'disabled' : ''}>${st.running ? 'ANALIZANDO…' : st.at ? '↻ ACTUALIZAR ANÁLISIS' : '⚡ ANALIZAR EMPRESAS'}</button></div>${prog}
-      <div class="muted" style="font-size:11px;margin-top:8px">${st.at ? 'Datos ' + ago(st.at) + ' · ' + have.length + ' de ' + syms.length + ' empresas analizadas.' : 'Analiza unas ' + syms.length + ' empresas de dividendo (tarda 1-2 minutos la primera vez).'}${st.error ? `<br><span class="down">Error: ${esc(st.error)}</span>` : ''}</div></div>`;
+      <div class="muted" style="font-size:11px;margin-top:8px">${st.at ? 'Datos ' + ago(st.at) + ' · ' + have.length + ' de ' + syms.length + ' empresas analizadas.' : 'Analiza unas ' + syms.length + ' empresas de dividendo (tarda 1-2 minutos la primera vez).'}${st.error ? `<br><span class="down">${esc(st.error)}</span>` : ''}</div></div>`;
 
     const alHtml = al.items.length ? `<h2><span>REPARTO SUGERIDO · ${UI.eur(st.amount, 0)}</span></h2><div class="gcard rowsc">${al.items.map(i => {
       const e = i.e, wsBefore = ex.sector[e.sec] || 0, wsAfter = ((wsBefore / 100 * ex.total) + i.cost) / al.newTotal * 100;
@@ -224,7 +225,7 @@
       ['ROE / margen', fmtPct(c.roe, 0) + ' / ' + fmtPct(c.margin, 0)], ['PER / PER futuro', (c.pe != null ? UI.fnum(c.pe, 1) : '—') + ' / ' + (c.fwdPe != null ? UI.fnum(c.fwdPe, 1) : '—')],
       ['Objetivo analistas', c.target ? UI.price(c.target, c.currency) + (c.price ? ' (' + UI.sPct(c.target / c.price - 1) + ')' : '') : '—'], ['Posición en rango 5 años', c.pctile5 != null ? UI.fnum(c.pctile5 * 100, 0) + '% (0 = mínimo)' : '—'],
       ['Frente al máx. 52 semanas', c.high52 && c.price ? UI.sPct(c.price / c.high52 - 1) : '—']];
-    const bg = UI.sheet(`<div class="hd"><div class="t">${esc(c.sym)} · NOTA ${e.score}/100</div><button data-close>✕</button></div>
+    const bg = UI.sheet(`<div class="hd"><div class="t">${esc(c.sym)} · NOTA ${e.score}/100</div><button data-close aria-label="Cerrar">✕</button></div>
       <div class="muted" style="margin-bottom:8px">${esc(c.name)} · ${esc(e.sec || '')} · ${esc(e.pais || '')}</div>
       <div class="kv" style="margin-bottom:10px">${kv.map(r => `<div class="k">${r[0]}</div><div class="v">${r[1]}</div>`).join('')}</div>
       <div class="muted" style="font-size:11.5px">Calidad ${e.q}/40 · Precio ${e.v}/40 · Encaje con tu cartera ${e.f}/20</div>

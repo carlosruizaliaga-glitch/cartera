@@ -1,6 +1,6 @@
 // Service worker: guarda la app (y la fuente) en caché para que abra sin conexión.
 const CACHE = 'cartera-v20';
-const FILES = ['./', 'index.html', 'app.js', 'store.js', 'market.js', 'calc.js', 'forms.js', 'dividends.js', 'screens.js', 'analysis.js', 'graficas.js', 'sugerencias.js', 'plan.js', 'xlsx.js', 'settings.js', 'version.js', 'manifest.webmanifest',
+const FILES = ['./', 'index.html', 'app.js', 'store.js', 'market.js', 'calc.js', 'forms.js', 'dividends.js', 'screens.js', 'analysis.js', 'graficas.js', 'sugerencias.js', 'plan.js', 'nativo.js', 'xlsx.js', 'settings.js', 'version.js', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

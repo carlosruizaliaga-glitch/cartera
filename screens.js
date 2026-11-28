@@ -310,7 +310,7 @@
     const loading = M.busy() || (!isC && a.yahoo && !M.longHistory(a));
 
     $('#fz', bg).innerHTML = `
-      <div class="hd"><div style="display:flex;align-items:center;gap:11px">${UI.logoHtml(a, q)}<div><div class="t">${UI.esc(a.ticker)}</div><div class="nm muted">${UI.esc(a.name)}</div></div></div><button data-close>✕</button></div>
+      <div class="hd"><div style="display:flex;align-items:center;gap:11px">${UI.logoHtml(a, q)}<div><div class="t">${UI.esc(a.ticker)}</div><div class="nm muted">${UI.esc(a.name)}</div></div></div><button data-close aria-label="Cerrar">✕</button></div>
       <div class="fprice"><span class="big" id="fpv">${q ? UI.price(q.price, cur) : '—'}</span>
         <span id="fpc" class="${UI.cls(dayCh)}">${dayCh != null ? UI.sPct(dayCh) + ' HOY' : ''}</span></div>
       <div class="chart" id="fch"></div>

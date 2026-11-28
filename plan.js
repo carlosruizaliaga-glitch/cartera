@@ -6,6 +6,7 @@
   const LS = 'cartera.plan.v1';
   const saved = (() => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } })();
   const st = { health: saved.health || {}, healthAt: saved.healthAt || 0, running: false, err: null, simPos: null, simPct: 50, dg: saved.dg != null ? saved.dg : 4, pg: saved.pg != null ? saved.pg : 0 };
+  const friendly = m => /failed to fetch|networkerror|load failed/i.test(m) ? 'Sin conexión con la nube. Comprueba internet y reintenta.' : /bad_secret|401/.test(m) ? 'La nube no reconoce tu código de acceso. Vuelve a entrar en Ajustes → Sincronización.' : /429/.test(m) ? 'Demasiadas consultas seguidas. Espera un minuto y reintenta.' : /HTTP 5|500|502|503|504/.test(m) ? 'La nube no responde ahora mismo. Reintenta en unos minutos.' : 'No se pudo completar (' + m + '). Reintenta.';
   const persist = () => { try { localStorage.setItem(LS, JSON.stringify({ health: st.health, healthAt: st.healthAt, dg: st.dg, pg: st.pg })); } catch (e) { /* sin almacenamiento */ } };
   const settings = () => S.get('settings') || {};
   const esc = s => U().esc(s);
@@ -104,7 +105,7 @@
       `<div class="grow"><b>${esc(r.a.ticker)}</b><span class="mu">${f.length ? esc(f.join(' · ')) : 'sin señales de alarma'}</span><em class="${f.length >= 2 ? 'down' : f.length ? 'yellow' : 'up'}">${f.length >= 2 ? 'RIESGO' : f.length ? 'VIGILAR' : 'OK'}</em></div>`).join('');
     return card('SALUD DE TUS DIVIDENDOS', 'Revisa si alguna de tus empresas da señales de poder recortar el dividendo (payout alto, beneficios a la baja, deuda).',
       `<div class="gcard"><div class="bk"><button id="planHealth" class="primary" ${st.running ? 'disabled' : ''}>${st.running ? 'REVISANDO…' : st.healthAt ? '↻ REVISAR DE NUEVO' : '🩺 REVISAR MIS EMPRESAS'}</button></div>
-      <div class="muted" style="font-size:11px;margin-top:8px">${st.healthAt ? 'Revisado hace ' + Math.max(1, Math.round((Date.now() - st.healthAt) / 3600000)) + ' h · ' + have.length + ' de ' + held.length + ' empresas.' : 'Aún no revisado.'}${st.err ? `<br><span class="down">Error: ${esc(st.err)}</span>` : ''}</div></div>${body ? `<div class="gcard rowsc">${body}</div>` : ''}`);
+      <div class="muted" style="font-size:11px;margin-top:8px">${st.healthAt ? 'Revisado hace ' + Math.max(1, Math.round((Date.now() - st.healthAt) / 3600000)) + ' h · ' + have.length + ' de ' + held.length + ' empresas.' : 'Aún no revisado.'}${st.err ? `<br><span class="down">${esc(st.err)}</span>` : ''}</div></div>${body ? `<div class="gcard rowsc">${body}</div>` : ''}`);
   }
   async function runHealth(rerender) {
     if (st.running) return;
@@ -117,7 +118,7 @@
         if (!res.ok || d.error) throw new Error(d.error || 'HTTP ' + res.status);
         Object.assign(st.health, d.items || {}); st.healthAt = Date.now(); persist(); rerender();
       }
-    } catch (e) { st.err = String(e && e.message || e); }
+    } catch (e) { st.err = friendly(String(e && e.message || e)); }
     st.running = false; persist(); rerender();
   }
 

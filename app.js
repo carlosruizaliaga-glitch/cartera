@@ -177,7 +177,7 @@
   function exitReadonly() {
     const done = () => setReadonly(false);
     if (!getPin()) return done();
-    const bg = sheet(`<div class="hd"><div class="t">SALIR DE MODO LECTURA</div><button data-close>✕</button></div><form class="f" onsubmit="return false"><div class="fld"><label>PIN</label><input id="roPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div><div class="actions"><button type="button" id="roOk" class="primary">ACEPTAR</button></div></form>`);
+    const bg = sheet(`<div class="hd"><div class="t">SALIR DE MODO LECTURA</div><button data-close aria-label="Cerrar">✕</button></div><form class="f" onsubmit="return false"><div class="fld"><label>PIN</label><input id="roPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div><div class="actions"><button type="button" id="roOk" class="primary">ACEPTAR</button></div></form>`);
     $('#roOk', bg).onclick = async () => { if (await checkPin($('#roPin', bg).value.trim(), getPin())) { bg.remove(); done(); } else toast('PIN INCORRECTO'); };
   }
   const pendingCount = () => S.list('dividend').filter(d => d.status === 'pending').length;
@@ -187,7 +187,7 @@
       <header class="top">
         <div class="brand"><b>&gt;</b> CARTERA CARLOS</div><div class="sp"></div>
         <button class="iconbtn${PRIV ? ' on' : ''}" id="privBtn" aria-label="${PRIV ? 'Mostrar importes' : 'Ocultar importes'}" aria-pressed="${PRIV}">${eyeIcon(PRIV)}</button>
-        <button class="iconbtn" id="syncBtn"${S.status() === "ok" && !S.pending() ? " hidden" : ""}>${syncDot()}</button>
+        <button class="iconbtn" id="syncBtn" aria-label="Sincronización"${S.status() === "ok" && !S.pending() ? " hidden" : ""}>${syncDot()}</button>
         ${RO ? '<button class="iconbtn on" id="roBtn">🔒 LECTURA</button>' : '<button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙</button>'}
       </header>
       <div id="ptr"></div>
@@ -810,40 +810,6 @@
     if (hiddenAt && Date.now() - hiddenAt > LOCK_AFTER) autoLockCheck();
   });
 
-  // ---------- App de Android: resumen para el widget y eventos para los avisos ----------
-  let nativeTimer = null;
-  function scheduleNative() { clearTimeout(nativeTimer); nativeTimer = setTimeout(pushNative, 1500); }
-  function pushNative() {
-    const B = window.AndroidBridge;
-    if (!B || !S.loggedIn()) return;
-    try {
-      const mdl = model();
-      if (!mdl.rows.length) return;
-      const rows = mdl.rows, t = today();
-      const total = rows.reduce((x, r) => x + (r.value || 0), 0);
-      const day = rows.reduce((x, r) => x + (r.day || 0), 0);
-      const dayPct = total - day ? day / (total - day) : 0;
-      const stocks = rows.filter(r => r.a.type !== 'crypto').map(r => r.a);
-      const evs = window.Divs.upcoming(stocks, { back: 0 }).filter(e => e.pay >= t && e.qty > 0);
-      const dd = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
-      const next = evs[0];
-      // Con el modo privado activado, eur() ya devuelve "••••": el widget y los avisos no enseñan importes.
-      B.saveSummary(JSON.stringify({ v: eur(total), d: sEur(day) + ' (' + sPct(dayPct) + ')', up: day > 1e-9 ? 1 : day < -1e-9 ? -1 : 0,
-        n: next ? next.asset.ticker + ' · ' + dd(next.pay) + ' · ~' + eur(next.net) : '', t: Date.now() }));
-      const out = [], limit = C.addDays(t, 60);
-      evs.forEach(e => {
-        out.push({ t: e.asset.ticker, k: 'pay', d: e.pay, a: eur(e.net) });
-        if (e.ex && e.ex >= t) out.push({ t: e.asset.ticker, k: 'ex', d: e.ex });
-      });
-      stocks.forEach(a => {
-        const inf = a.yahoo && M.info(a.yahoo);
-        ((inf && inf.earnings) || []).forEach(d => { if (d >= t) out.push({ t: a.ticker, k: 'earn', d }); });
-      });
-      try { if (window.Plan && window.Plan.alertEvents) out.push(...window.Plan.alertEvents(rows, total)); } catch (e) { /* sin alertas */ }
-      B.saveEvents(JSON.stringify(out.filter(e => e.d <= limit)));
-    } catch (e) { console.warn('native', e); }
-  }
-
   // ---------- Render ----------
   function render() {
     if (!S.loggedIn()) { renderLogin(); return; }
@@ -856,7 +822,9 @@
     else if (ui.tab === 'analisis') window.Analysis.render();
     else window.SettingsScreen.render();
     window.scrollTo(0, y);
-    if (NATIVE) scheduleNative();
+    // Accesibilidad: lo que se ve en gráficos y mapas (data-tip) también se lee con lector de pantalla
+    document.querySelectorAll('[data-tip]:not([aria-label])').forEach(el => { el.setAttribute('aria-label', (el.dataset.tip || '').split('|').join(', ')); if (!el.getAttribute('role')) el.setAttribute('role', 'img'); });
+    if (NATIVE && window.Nativo) window.Nativo.schedule();
   }
 
   let pending = null, seenVersion = S.version();
